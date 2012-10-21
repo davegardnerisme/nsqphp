@@ -1,0 +1,3 @@
+[submodule "dependencies/spl-class-loader"]
+	path = dependencies/spl-class-loader
+	url = git://gist.github.com/2966085.git
