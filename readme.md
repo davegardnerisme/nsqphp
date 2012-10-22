@@ -41,6 +41,7 @@ deals with these).
 
 ### To do
 
-  - Requeue failed messages using a back-off strategy
+  - Requeue failed messages using a back-off strategy (currently only simple
+    fixed-delay requeue strategy)
   - Connect to `nsqlookupd` to find out where to connect to, figure out how to
     structure this within the client

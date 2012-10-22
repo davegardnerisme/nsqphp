@@ -4,6 +4,7 @@ namespace nsqphp;
 
 use nsqphp\Connection\ConnectionInterface;
 use nsqphp\Logger\LoggerInterface;
+use nsqphp\RequeueStrategy\RequeueStrategyInterface;
 use nsqphp\Message\MessageInterface;
 use nsqphp\Message\Message;
 
@@ -15,6 +16,13 @@ class nsqphp
      * @var ConnectionInterface
      */
     private $connection;
+    
+    /**
+     * Requeue strategy
+     * 
+     * @var RequeueStrategyInterface
+     */
+    private $requeueStrategy;
     
     /**
      * Logger, if any enabled
@@ -41,11 +49,17 @@ class nsqphp
      * Constructor
      * 
      * @param ConnectionInterface $connection
+     * @param RequeueStrategyInterface|NULL $requeueStrategy
      * @param LoggerInterface|NULL $logger
      */
-    public function __construct(ConnectionInterface $connection, LoggerInterface $logger = NULL)
+    public function __construct(
+            ConnectionInterface $connection,
+            RequeueStrategyInterface $requeueStrategy = NULL,
+            LoggerInterface $logger = NULL
+            )
     {
         $this->connection = $connection;
+        $this->requeueStrategy = $requeueStrategy;
         $this->logger = $logger;
         
         $this->reader = new Wire\Reader;
@@ -133,10 +147,24 @@ class nsqphp
                     try {
                         call_user_func($callback, $msg);
                     } catch (\Exception $e) {
+                        if ($this->logger) {
+                            $this->logger->warn('Error processing "' . $msg->getId() . '": ' . $e->getMessage());
+                        }
                         // requeue message according to backoff strategy; continue
-
-                        // @todo
-                        continue;
+                        if ($this->requeueStrategy !== NULL
+                                && ($delay = $this->requeueStrategy->shouldRequeue($msg)) !== NULL) {
+                            // requeue
+                            if ($this->logger) {
+                                $this->logger->debug('Requeuing "' . $msg->getId() . '" with delay "' . $delay . '"');
+                            }
+                            $this->connection->write($this->writer->requeue($msg->getId(), $delay));
+                            $this->connection->write($this->writer->ready(1));
+                            continue;
+                        } else {
+                            if ($this->logger) {
+                                $this->logger->debug('Not requeing "' . $msg->getId() . '"');
+                            }
+                        }
                     }
                 } else {
                     // @todo handle error responses a bit more cleverly
