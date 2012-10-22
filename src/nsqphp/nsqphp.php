@@ -5,14 +5,10 @@ namespace nsqphp;
 use nsqphp\Connection\ConnectionInterface;
 use nsqphp\Logger\LoggerInterface;
 use nsqphp\Message\MessageInterface;
+use nsqphp\Message\Message;
 
 class nsqphp
 {
-    /**
-     * Heartbeat
-     */
-    const HEARTBEAT = '_heartbeat_';
-    
     /**
      * Connection
      * 
@@ -90,8 +86,8 @@ class nsqphp
     public function publish($topic, MessageInterface $msg)
     {
         $this->connection->write($this->writer->publish($topic, $msg->getPayload()));
-        $response = $this->reader->readResponse($this->connection);
-        if ($response !== 'OK') {
+        $frame = $this->reader->readFrame($this->connection);
+        if (!$this->reader->frameIsResponse($frame, 'OK')) {
             throw new Exception\ProtocolException("Error publishing; server replied \"$response\"");
         }
     }
@@ -122,30 +118,28 @@ class nsqphp
         
         while (1) {
             if ($this->connection->isReadable()) {
-                try {
-                    $msg = $this->reader->readMessage($this->connection);
-                    call_user_func($callback, $msg);
-                } catch (Exception\ResponseFrameException $e) {
-                    // heartbeat?
-                    if ($e->getMessage() === self::HEARTBEAT) {
-                        if ($this->logger) {
-                            $this->logger->debug('HEARTBEAT');
-                        }
-                        $this->connection->write($this->writer->nop());
-                        continue;
-                    } else {
-                        throw new Exception\ProtocolException("Unexpected response frame: " . $e->getMessage(), NULL, $e);
+                $frame = $this->reader->readFrame($this->connection);
+
+                // intercept errors/responses
+                if ($this->reader->frameIsHeartbeat($frame)) {
+                    if ($this->logger) {
+                        $this->logger->debug('HEARTBEAT');
                     }
+                    $this->connection->write($this->writer->nop());
                     continue;
-                } catch (Exception\ReadException $e) {
-                    // unable to read; give up
-                    throw $e;
-                } catch (\Exception $e) {
-                    // requeue message according to backoff strategy; continue
-                    
-                    // @todo
-                    
-                    continue;
+                } elseif ($this->reader->frameIsMessage($frame)) {
+                    $msg = Message::fromFrame($frame);
+                    try {
+                        call_user_func($callback, $msg);
+                    } catch (\Exception $e) {
+                        // requeue message according to backoff strategy; continue
+
+                        // @todo
+                        continue;
+                    }
+                } else {
+                    // @todo handle error responses a bit more cleverly
+                    throw new Exception\ProtocolException("Error/unexpected frame received: " . json_encode($frame), NULL, $e);
                 }
 
                 // mark as done; get next on the way

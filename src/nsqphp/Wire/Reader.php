@@ -20,30 +20,16 @@ class Reader
     const FRAME_TYPE_MESSAGE = 2;
     
     /**
-     * Read response
-     * 
-     * @param ConnectionInterface $connection
+     * Heartbeat response content
      */
-    public function readResponse(ConnectionInterface $connection)
-    {
-        try {
-            $size = $this->readInt($connection);
-            $response = $this->readString($connection, $size);
-        } catch (SocketException $e) {
-            throw new ReadException("Error reading response [$size]", NULL, $e);
-        }
-        return $response;
-    }
-    
+    const HEARTBEAT = '_heartbeat_';
+
     /**
-     * Read message
+     * Read frame
      * 
-     * @param ConnectionInterface $connection
-     * 
-     * @throws ErrorFrameException If we receive an error frame
-     * @throws ResponseFrameException If we receive a response frame
+     * @return array With keys: type, data
      */
-    public function readMessage(ConnectionInterface $connection)
+    public function readFrame(ConnectionInterface $connection)
     {
         try {
             $size = $frameType = NULL;
@@ -53,54 +39,75 @@ class Reader
             throw new ReadException("Error reading message frame [$size, $frameType]", NULL, $e);
         }
 
-        switch ($frameType) {
-            case self::FRAME_TYPE_RESPONSE:
-                throw new ResponseFrameException($this->readString($connection, $size-4));
-                break;
-            case self::FRAME_TYPE_ERROR:
-                throw new ErrorFrameException($this->readString($connection, $size-4));
-                break;
-            case self::FRAME_TYPE_MESSAGE:
-                try {
-                    $ts = $attempts = $id = $msgPayload = NULL;
-                    $ts = $this->readLong($connection);
-                    $attempts = $this->readShort($connection);
-                    $id = $this->readString($connection, 16);
-                    $msgPayload = $this->readString($connection, $size - 30);
-                } catch (SocketException $e) {
-                    throw new ReadException("Error reading message details [$ts, $attempts, $id, $msgPayload]", NULL, $e);
-                }
-                
-                $msg = new Message($msgPayload, $id, $attempts, $ts);
-                
-                break;
-            default:
-                throw new UnknownFrameException($this->readString($connection, $size-8));
-                break;
+        $frame = array(
+            'type'  => $frameType,
+            'size'  => $size
+            );
+        
+        try {
+            switch ($frameType) {
+                case self::FRAME_TYPE_RESPONSE:
+                    $frame['response'] = $this->readString($connection, $size-4);
+                    break;
+                case self::FRAME_TYPE_ERROR:
+                    $frame['error'] = $this->readString($connection, $size-4);
+                    break;
+                case self::FRAME_TYPE_MESSAGE:
+                    $frame['ts'] = $this->readLong($connection);
+                    $frame['attempts'] = $this->readShort($connection);
+                    $frame['id'] = $this->readString($connection, 16);
+                    $frame['payload'] = $this->readString($connection, $size - 30);
+                    break;
+                default:
+                    throw new UnknownFrameException($this->readString($connection, $size-4));
+                    break;
+            }
+        } catch (SocketException $e) {
+            throw new ReadException("Error reading frame details [$size, $frameType]", NULL, $e);
         }
 
-        return $msg;
+        return $frame;
     }
     
     /**
-     * Read frame
+     * Test if frame is a response frame (optionally with content $response)
+     *
+     * @param array $frame
+     * @param string|NULL $response If provided we'll check for this specific
+     *      response
      * 
-     * @return array With keys: type, data
+     * @return boolean
      */
-    public function readFrame(ConnectionInterface $connection)
+    public function frameIsResponse(array $frame, $response = NULL)
     {
-        $frameType = $size = $data = NULL;
-        try {
-            //$frameType = $this->readInt($connection);
-            $size = $this->readInt($connection);
-            $data = $this->readString($connection, $size);
-            return array(
-                'type'  => $frameType,
-                'data'  => $data
-                );
-        } catch (SocketException $e) {
-            throw new ReadException("Error reading frame [$frameType, $size]", NULL, $e);
-        }
+        return isset($frame['type'], $frame['response'])
+                && $frame['type'] === self::FRAME_TYPE_RESPONSE
+                && ($response === NULL || $frame['response'] === $response);
+    }
+
+    /**
+     * Test if frame is a message frame
+     *
+     * @param array $frame
+     * 
+     * @return boolean
+     */
+    public function frameIsMessage(array $frame)
+    {
+        return isset($frame['type'], $frame['payload'])
+                && $frame['type'] === self::FRAME_TYPE_MESSAGE;
+    }
+    
+    /**
+     * Test if frame is heartbeat
+     * 
+     * @param array $frame
+     * 
+     * @return boolean
+     */
+    public function frameIsHeartbeat(array $frame)
+    {
+        return $this->frameIsResponse($frame, self::HEARTBEAT);
     }
     
     /**

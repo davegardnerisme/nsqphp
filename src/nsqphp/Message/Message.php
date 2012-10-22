@@ -5,6 +5,21 @@ namespace nsqphp\Message;
 class Message implements MessageInterface
 {
     /**
+     * Construct from frame
+     * 
+     * @param array $frame
+     */
+    public static function fromFrame(array $frame)
+    {
+        return new Message(
+                $frame['payload'],
+                $frame['id'],
+                $frame['attempts'],
+                $frame['ts']
+                );
+    }
+    
+    /**
      * Message payload - string
      * 
      * @var string

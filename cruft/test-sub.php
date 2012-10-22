@@ -6,7 +6,9 @@ $logger = new nsqphp\Logger\Stderr;
 $conn = new nsqphp\Connection\Connection;
 $nsq = new nsqphp\nsqphp($conn, $logger);
 
-$nsq->subscribe('mytopic', 'foo', 'mycallback');
+$channel = isset($argv[1]) ? $argv[1] : 'foo';
+
+$nsq->subscribe('mytopic', $channel, 'mycallback');
 
 function mycallback($msg)
 {
