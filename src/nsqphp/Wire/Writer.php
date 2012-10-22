@@ -11,6 +11,8 @@ class Writer
     
     /**
      * Magic hello
+     * 
+     * @return string
      */
     public function magic()
     {
@@ -18,7 +20,14 @@ class Writer
     }
     
     /**
-     * Subscribe
+     * Subscribe [SUB]
+     * 
+     * @param string $topic
+     * @param string $channel
+     * @param string $shortId
+     * @param string $longId
+     * 
+     * @return string
      */
     public function subscribe($topic, $channel, $shortId, $longId)
     {
@@ -26,7 +35,12 @@ class Writer
     }
     
     /**
-     * Publish
+     * Publish [PUB]
+     * 
+     * @param string $topic
+     * @param string $message
+     * 
+     * @return string
      */
     public function publish($topic, $message)
     {
@@ -37,28 +51,57 @@ class Writer
     }
     
     /**
-     * Ready
+     * Ready [RDY]
+     * 
+     * @param integer $count
+     * 
+     * @return string
      */
     public function ready($count)
     {
         return $this->command('RDY', $count);
     }
     
+    /**
+     * Finish [FIN]
+     * 
+     * @param string $id
+     * 
+     * @return string
+     */
     public function finish($id)
     {
         return $this->command('FIN', $id);
     }
 
+    /**
+     * Requeue [REQ]
+     *
+     * @param string $id
+     * @param integer $timeMs
+     * 
+     * @return string
+     */
     public function requeue($id, $timeMs)
     {
         return $this->command('REQ', $id, $timeMs);
     }
     
+    /**
+     * No-op [NOP]
+     *
+     * @return string
+     */
     public function nop()
     {
         return $this->command('NOP');
     }
     
+    /**
+     * Cleanly close [CLS]
+     *
+     * @return string
+     */
     public function close()
     {
         return $this->command('CLS');
@@ -76,6 +119,13 @@ class Writer
         return sprintf("%s %s%s", $cmd, implode(' ', $args), "\n");
     }
     
+    /**
+     * Pack string -> binary
+     *
+     * @param string $str
+     * 
+     * @return string Binary packed
+     */
     private function packString($str)
     {        
         $outStr = "";
