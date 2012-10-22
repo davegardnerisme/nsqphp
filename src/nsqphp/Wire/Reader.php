@@ -27,6 +27,10 @@ class Reader
     /**
      * Read frame
      * 
+     * @throws ReadException If we have a problem reading the core frame header
+     *      (data size + frame type)
+     * @throws ReadException If we have a problem reading the frame data
+     * 
      * @return array With keys: type, data
      */
     public function readFrame(ConnectionInterface $connection)

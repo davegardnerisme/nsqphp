@@ -103,7 +103,8 @@ class nsqphp
      *      mark the message as finished or throw an exception to cause a
      *      backed-off requeue
      * 
-     * @throws Exception\ProtocolException If we receive unexpected response frame
+     * @throws \InvalidArgumentException If we don't have a valid callback
+     * @throws Exception\ProtocolException If we receive unexpected response/error frame
      */
     public function subscribe($topic, $channel, $callback)
     {
