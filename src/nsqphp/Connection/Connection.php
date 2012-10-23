@@ -133,7 +133,7 @@ class Connection implements ConnectionInterface
             } else if ($readable === 0) {
                 throw new SocketException("Timed out reading {$len} bytes from {$this->hostname}:{$this->port}");
             } else {
-                throw new TTransportException("Could not read {$len} bytes from {$this->hostname}:{$this->port}");
+                throw new SocketException("Could not read {$len} bytes from {$this->hostname}:{$this->port}");
             }
             $data .= $buffer;
             $len -= strlen($buffer);
