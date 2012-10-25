@@ -28,4 +28,11 @@ interface ConnectionInterface
      * @param string $buf The data to write
      */
     public function write($buf);
+    
+    /**
+     * Get socket handle
+     * 
+     * @return Resource The socket
+     */
+    public function getSocket();
 }

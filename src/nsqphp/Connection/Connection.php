@@ -5,6 +5,9 @@ namespace nsqphp\Connection;
 use nsqphp\Exception\ConnectionException;
 use nsqphp\Exception\SocketException;
 
+/**
+ * Represents a single connection to a single NSQD server
+ */
 class Connection implements ConnectionInterface
 {
     /**
@@ -170,13 +173,13 @@ class Connection implements ConnectionInterface
             }
         }
     }
-
+    
     /**
      * Get socket handle
      * 
      * @return Resource The socket
      */
-    private function getSocket()
+    public function getSocket()
     {
         if ($this->socket === NULL) {
             $this->socket = fsockopen($this->hostname, $this->port, $errNo, $errStr, $this->connectionTimeout);
@@ -188,5 +191,15 @@ class Connection implements ConnectionInterface
 
         }
         return $this->socket;
+    }
+    
+    /**
+     * To string (for debug logging)
+     * 
+     * @return string
+     */
+    public function __toString()
+    {
+        return "{$this->hostname}:{$this->port}";
     }
 }
