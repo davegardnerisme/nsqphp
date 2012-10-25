@@ -6,3 +6,6 @@ if (!class_exists('\SplClassLoader')) {
 }
 $classLoader = new \SplClassLoader('nsqphp', __DIR__ . '/src/');
 $classLoader->register();
+
+$classLoader = new \SplClassLoader('React', __DIR__ . '/dependencies/react-php/src/');
+$classLoader->register();

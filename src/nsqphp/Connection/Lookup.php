@@ -68,7 +68,7 @@ class Lookup
         $lookupHosts = array();
         
         foreach ($this->hosts as $host) {
-            $url = "http://{$hostname}/lookup?topic=" . urlencode($topic);
+            $url = "http://{$host}/lookup?topic=" . urlencode($topic);
             $ch = curl_init($url);
             $options = array(
                 CURLOPT_RETURNTRANSFER => TRUE,

@@ -65,9 +65,10 @@ class nsqphp
         $this->reader = new Wire\Reader;
         $this->writer = new Wire\Writer;
         
-        // @todo
-        $this->shortId = 'foo';
-        $this->longId = 'foo.bar';
+        $hn = exec('hostname -f');
+        $parts = explode('.', $hn);
+        $this->shortId = $parts[0];
+        $this->longId = $hn;
         
         // say hello
         $this->connection->write($this->writer->magic());

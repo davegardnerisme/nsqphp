@@ -2,6 +2,13 @@
 
 include __DIR__ . '/../bootstrap.php';
 
-$nsq = new nsqphp\nsqphpio();
+$lookup = new nsqphp\Connection\Lookup;
+$logger = new nsqphp\Logger\Stderr;
+$nsq = new nsqphp\nsqphpio($lookup, $logger);
 
-$nsq->subscribe('foo', 'bar', function() {});
+$nsq->subscribe('mytopic', 'bar', function($msg) {
+    echo "READ " . $msg->getId() . "\n";
+});
+
+$nsq->run();
+

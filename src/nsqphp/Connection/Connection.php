@@ -62,6 +62,13 @@ class Connection implements ConnectionInterface
      * @var integer
      */
     private $readWaitTimeoutUsec;
+    
+    /**
+     * Non-blocking mode?
+     * 
+     * @var boolean
+     */
+    private $nonBlocking;
 
     /**
      * Socket handle
@@ -81,13 +88,15 @@ class Connection implements ConnectionInterface
      * @param float $readWaitTimeout How long we'll wait for data to become
      *      available before giving up (eg; duirng SUB loop)
      *      In seconds (no need to be whole numbers)
+     * @param boolean $nonBlocking Put socket in non-blocking mode
      */
     public function __construct(
             $hostname = 'localhost',
             $port = 4150,
             $connectionTimeout = 3,
             $readWriteTimeout = 3,
-            $readWaitTimeout = 15
+            $readWaitTimeout = 15,
+            $nonBlocking = FALSE
             ) {
         $this->hostname = $hostname;
         $this->port = $port;
@@ -96,6 +105,7 @@ class Connection implements ConnectionInterface
         $this->readWriteTimeoutUsec = ($readWriteTimeout - $this->readWriteTimeoutSec) * 1000000;
         $this->readWaitTimeoutSec = floor($readWaitTimeout);
         $this->readWaitTimeoutUsec = ($readWaitTimeout - $this->readWaitTimeoutSec) * 1000000;
+        $this->nonBlocking = (bool)$nonBlocking;
     }
     
     /**
@@ -188,7 +198,9 @@ class Connection implements ConnectionInterface
                         "Could not connect to {$this->hostname}:{$this->port} ({$errStr} [{$errNo}])"
                         );
             }
-
+            if ($this->nonBlocking) {
+                stream_set_blocking($this->socket, 0);
+            }
         }
         return $this->socket;
     }

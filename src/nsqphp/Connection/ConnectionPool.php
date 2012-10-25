@@ -33,42 +33,6 @@ class ConnectionPool implements \Iterator, \Countable
     }
     
     /**
-     * Establish connection and add
-     * 
-     * This will create connection objects from hosts.
-     * 
-     * @param string|array $hosts Either a single host:port, a string of many
-     *      host:port with commas, or an array of host:port
-     *      (NB: actually :port is optional)
-     * @param float|NULL $connectionTimeout Optional timeout in seconds
-     *      (no need to be whole numbers)
-     * @param float|NULL $readWriteTimeout Optional Socket timeout during active
-     *      read/write in seconds (no need to be whole numbers)
-     * @param float|NULL $readWaitTimeout Optional timeout - how long we'll wait
-     *      for data to become available before giving up (eg; duirng SUB loop)
-     *      In seconds (no need to be whole numbers)
-     */
-    public function createAndAdd($hosts, $connectionTimeout = NULL, $readWriteTimeout = NULL, $readWaitTimeout = NULL)
-    {
-        if (!is_array($hosts)) {
-            $hosts = explode(',', $hosts);
-        }
-        foreach ($hosts as $host) {
-            $parts = explode(':', $host);
-            $conn = new Connection(
-                    $parts[0],
-                    isset($parts[1]) ? $parts[1] : NULL,
-                    $connectionTimeout,
-                    $readWriteTimeout,
-                    $readWaitTimeout
-                    );
-            if (!$this->hasConnection($conn)) {
-                $this->add($conn);
-            }
-        }
-    }
-    
-    /**
      * Test if has connection
      * 
      * Remember that the sockets are lazy-initialised so we can create
@@ -84,17 +48,21 @@ class ConnectionPool implements \Iterator, \Countable
     }
     
     /**
-     * Find connection from socket
+     * Find connection from socket/host
      * 
-     * @param Resource $socket
+     * @param Resource|string $socketOrHost
      * 
      * @return ConnectionInterface|NULL Will return NULL if not found
      */
-    public function find($socket)
+    public function find($socketOrHost)
     {
-        foreach ($this->connections as $conn) {
-            if ($conn->getSocket() === $socket) {
-                return $conn;
+        if (is_string($socketOrHost)) {
+            return isset($this->connections[$socketOrHost]) ? $this->connections[$socketOrHost] : NULL;
+        } else {
+            foreach ($this->connections as $conn) {
+                if ($conn->getSocket() === $socketOrHost) {
+                    return $conn;
+                }
             }
         }
         return NULL;

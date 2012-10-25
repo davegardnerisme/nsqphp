@@ -19,12 +19,40 @@ class nsqphpio
     private $nsLookup;
     
     /**
+     * Logger, if any enabled
+     * 
+     * @var LoggerInterface
+     */
+    private $logger;
+    
+    /**
+     * Connection timeout - in seconds
+     * 
+     * @var float
+     */
+    private $connectionTimeout;
+    
+    /**
+     * Read/write timeout - in seconds
+     * 
+     * @var float
+     */
+    private $readWriteTimeout;
+    
+    /**
+     * Read wait timeout - in seconds
+     * 
+     * @var float
+     */
+    private $readWaitTimeout;
+
+    /**
      * Connection pool
      * 
      * @var Connection\ConnectionPool
      */
     private $connectionPool;
-    
+        
     /**
      * Event loop
      * 
@@ -32,19 +60,65 @@ class nsqphpio
      */
     private $loop;
     
+    /**
+     * Wire reader
+     * 
+     * @var Wire\Reader
+     */
+    private $reader;
+    
+    /**
+     * Wire writer
+     * 
+     * @var Wire\Writer
+     */
+    private $writer;
+    
+    /**
+     * Long ID (of who we are)
+     * 
+     * @var string
+     */
+    private $longId;
+    
+    /**
+     * Short ID (of who we are)
+     * 
+     * @var string
+     */
+    private $shortId;
     
     /**
      * Constructor
      * 
      * @param Connection\Lookup $nsLookup Lookup service for hosts from topic
+       @param LoggerInterface|NULL $logger
      */
     public function __construct(
-            Connection\Lookup $nsLookup
+            Connection\Lookup $nsLookup,
+            LoggerInterface $logger = NULL,
+            $connectionTimeout = 3,
+            $readWriteTimeout = 3,
+            $readWaitTimeout = 15
             )
     {
         $this->nsLookup = $nsLookup;
+        $this->logger = $logger;
+        
+        $this->connectionTimeout = $connectionTimeout;
+        $this->readWriteTimeout = $readWriteTimeout;
+        $this->readWaitTimeout = $readWaitTimeout;
+        
         $this->connectionPool = new Connection\ConnectionPool;
         $this->loop = ELFactory::create();
+        
+        $this->reader = new Wire\Reader;
+        $this->writer = new Wire\Writer;
+
+        $hn = exec('hostname -f');
+        $parts = explode('.', $hn);
+        $this->shortId = $parts[0];
+        $this->longId = $hn;
     }
     
     /**
@@ -52,13 +126,13 @@ class nsqphpio
      */
     public function __destruct()
     {
-        // say goodbye
-        /*
-        $this->connection->write($this->writer->close());
-        if ($this->logger) {
-            $this->logger->info("nsqphp closing");
+        // say goodbye to each connection
+        foreach ($this->connectionPool as $connection) {
+            $connection->write($this->writer->close());
+            if ($this->logger) {
+                $this->logger->info(sprintf('nsqphp closing [%s]', (string)$connection));
+            }
         }
-*/
     }
     
     /**
@@ -79,61 +153,98 @@ class nsqphpio
     public function subscribe($topic, $channel, $callback)
     {
         $hosts = $this->nsLookup->lookupHosts($topic);
-        $this->connectionPool->createAndAdd($hosts);
-        
         foreach ($hosts as $host) {
             $conn = $this->connectionPool->find($host);
-            $socket = $conn->getSocket();
-            $this->loop->addReadStream($socket, function ($socket) use ($callback) {
-                $connection = $this->connectionPool->find($socket);
-                $frame = $this->reader->readFrame($connection);
-
-                // intercept errors/responses
-                if ($this->reader->frameIsHeartbeat($frame)) {
-                    if ($this->logger) {
-                        $this->logger->debug(sprintf('HEARTBEAT [%s]', (string)$connection));
-                    }
-                    $connection->write($this->writer->nop());
-                    continue;
-                } elseif ($this->reader->frameIsMessage($frame)) {
-                    $msg = Message::fromFrame($frame);
-                    try {
-                        call_user_func($callback, $msg);
-                    } catch (\Exception $e) {
-                        if ($this->logger) {
-                            $this->logger->warn('Error processing "' . $msg->getId() . '": ' . $e->getMessage());
-                        }
-                        // requeue message according to backoff strategy; continue
-                        if ($this->requeueStrategy !== NULL
-                                && ($delay = $this->requeueStrategy->shouldRequeue($msg)) !== NULL) {
-                            // requeue
-                            if ($this->logger) {
-                                $this->logger->debug('Requeuing "' . $msg->getId() . '" with delay "' . $delay . '"');
-                            }
-                            $connection->write($this->writer->requeue($msg->getId(), $delay));
-                            $connection->write($this->writer->ready(1));
-                            continue;
-                        } else {
-                            if ($this->logger) {
-                                $this->logger->debug('Not requeing "' . $msg->getId() . '"');
-                            }
-                        }
-                    }
-                } else {
-                    // @todo handle error responses a bit more cleverly
-                    throw new Exception\ProtocolException("Error/unexpected frame received: " . json_encode($frame), NULL, $e);
+            if ($conn === NULL) {
+                $parts = explode(':', $host);
+                $conn = new Connection\Connection(
+                        $parts[0],
+                        isset($parts[1]) ? $parts[1] : NULL,
+                        $this->connectionTimeout,
+                        $this->readWriteTimeout,
+                        $this->readWaitTimeout,
+                        TRUE    // non-blocking
+                        );
+                if ($this->logger) {
+                    $this->logger->info("Connecting to {$host} and saying hello");
                 }
-
-                // mark as done; get next on the way
-                $connection->write($this->writer->finish($msg->getId()));
-                $connection->write($this->writer->ready(1));
-
+                $conn->write($this->writer->magic());
+                $this->connectionPool->add($conn);
+            }
+            $socket = $conn->getSocket();
+            $nsq = $this;
+            $this->loop->addReadStream($socket, function ($socket) use ($callback, $nsq) {
+                $nsq->readAndDispatchMessage($socket, $callback);
             });
+            
+            // subscribe
+            $conn->write($this->writer->subscribe($topic, $channel, $this->shortId, $this->longId));
+            $conn->write($this->writer->ready(1));
         }
     }
 
     /**
-     * Run subscribe loop
+     * Read/dispatch callback for async sub loop
+     * 
+     * @param Resource $socket The socket that a message is available on
+     * @param callable $callback The callback to execute to process this message
+     */
+    public function readAndDispatchMessage($socket, $callback)
+    {
+        if ($this->logger) {
+            $this->logger->debug('Read and dispatch message from ' . $socket);
+        }
+        
+        $connection = $this->connectionPool->find($socket);
+        $frame = $this->reader->readFrame($connection);
+
+        if ($this->logger) {
+            $this->logger->debug(sprintf('Read frame [%s] %s', (string)$connection, json_encode($frame)));
+        }
+
+        // intercept errors/responses
+        if ($this->reader->frameIsHeartbeat($frame)) {
+            if ($this->logger) {
+                $this->logger->debug(sprintf('HEARTBEAT [%s]', (string)$connection));
+            }
+            $connection->write($this->writer->nop());
+        } elseif ($this->reader->frameIsMessage($frame)) {
+            $msg = Message::fromFrame($frame);
+            try {
+                call_user_func($callback, $msg);
+            } catch (\Exception $e) {
+                if ($this->logger) {
+                    $this->logger->warn('Error processing "' . $msg->getId() . '": ' . $e->getMessage());
+                }
+                // requeue message according to backoff strategy; continue
+                if ($this->requeueStrategy !== NULL
+                        && ($delay = $this->requeueStrategy->shouldRequeue($msg)) !== NULL) {
+                    // requeue
+                    if ($this->logger) {
+                        $this->logger->debug('Requeuing "' . $msg->getId() . '" with delay "' . $delay . '"');
+                    }
+                    $connection->write($this->writer->requeue($msg->getId(), $delay));
+                    $connection->write($this->writer->ready(1));
+                    continue;
+                } else {
+                    if ($this->logger) {
+                        $this->logger->debug('Not requeing "' . $msg->getId() . '"');
+                    }
+                }
+            }
+            
+            // mark as done; get next on the way
+            $connection->write($this->writer->finish($msg->getId()));
+            $connection->write($this->writer->ready(1));
+
+        } else {
+            // @todo handle error responses a bit more cleverly
+            throw new Exception\ProtocolException("Error/unexpected frame received: " . json_encode($frame), NULL, $e);
+        }
+    }
+    
+    /**
+     * Run subscribe event loop
      */
     public function run()
     {
