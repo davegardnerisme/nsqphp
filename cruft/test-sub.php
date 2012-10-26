@@ -1,4 +1,9 @@
 <?php
+/**
+ * Test subscription
+ * 
+ * Subscribes to "mytopic" topic using channel "foo" (or one provided as argv1).
+ */
 
 include __DIR__ . '/../bootstrap.php';
 

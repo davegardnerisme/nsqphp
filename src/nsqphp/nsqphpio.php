@@ -6,6 +6,9 @@ use React\EventLoop\LoopInterface;
 use React\EventLoop\Factory as ELFactory;
 
 use nsqphp\Logger\LoggerInterface;
+use nsqphp\Connection\Lookup;
+use nsqphp\Dedupe\DedupeInterface;
+use nsqphp\RequeueStrategy\RequeueStrategyInterface;
 use nsqphp\Message\MessageInterface;
 use nsqphp\Message\Message;
 
@@ -14,14 +17,28 @@ class nsqphpio
     /**
      * nsqlookupd service
      * 
-     * @var Connection\Lookup
+     * @var Lookup
      */
     private $nsLookup;
     
     /**
+     * Dedupe service
+     * 
+     * @var DedupeInterface|NULL
+     */
+    private $dedupe;
+    
+    /**
+     * Requeue strategy
+     * 
+     * @var RequeueStrategyInterface|NULL
+     */
+    private $requeueStrategy;
+    
+    /**
      * Logger, if any enabled
      * 
-     * @var LoggerInterface
+     * @var LoggerInterface|NULL
      */
     private $logger;
     
@@ -91,11 +108,17 @@ class nsqphpio
     /**
      * Constructor
      * 
-     * @param Connection\Lookup $nsLookup Lookup service for hosts from topic
-       @param LoggerInterface|NULL $logger
+     * @param Lookup $nsLookup Lookup service for hosts from topic
+     * @param DedupeInterface|NULL $dedupe Deduplication service (optional)
+     * @param RequeueStrategyInterface|NULL $requeueStrategy Our strategy
+     *      for dealing with failures whilst processing SUBbed messages via
+     *      callback - if any (optional)
+       @param LoggerInterface|NULL $logger Logging service (optional)
      */
     public function __construct(
-            Connection\Lookup $nsLookup,
+            Lookup $nsLookup,
+            DedupeInterface $dedupe = NULL,
+            RequeueStrategyInterface $requeueStrategy = NULL,
             LoggerInterface $logger = NULL,
             $connectionTimeout = 3,
             $readWriteTimeout = 3,
@@ -103,6 +126,8 @@ class nsqphpio
             )
     {
         $this->nsLookup = $nsLookup;
+        $this->dedupe = NULL;
+        $this->requeueStrategy = $requeueStrategy;
         $this->logger = $logger;
         
         $this->connectionTimeout = $connectionTimeout;
