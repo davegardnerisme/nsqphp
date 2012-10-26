@@ -12,6 +12,7 @@ use nsqphp\Message\MessageInterface;
  * 
  * Stores the hash map in Memcached, allowing us to share this memory space
  * between N processes and keep it alive if the PHP process is killed.
+ * NB: fails silently so will happily not dedupe anything if Memcached dead.
  * 
  * This actually uses a hash of the content, so theoretically if both hash
  * functions collided (eg: the one to pick index and the one to hash content)

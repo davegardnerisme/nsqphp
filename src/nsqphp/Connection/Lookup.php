@@ -68,6 +68,11 @@ class Lookup
         $lookupHosts = array();
         
         foreach ($this->hosts as $host) {
+            // ensure host; otherwise go with default (:4161)
+            if (strpos($host, ':') === FALSE) {
+                $host .= ':4161';
+            }
+            
             $url = "http://{$host}/lookup?topic=" . urlencode($topic);
             $ch = curl_init($url);
             $options = array(

@@ -126,7 +126,7 @@ class nsqphpio
             )
     {
         $this->nsLookup = $nsLookup;
-        $this->dedupe = NULL;
+        $this->dedupe = $dedupe;
         $this->requeueStrategy = $requeueStrategy;
         $this->logger = $logger;
         
@@ -178,6 +178,10 @@ class nsqphpio
     public function subscribe($topic, $channel, $callback)
     {
         $hosts = $this->nsLookup->lookupHosts($topic);
+        if ($this->logger) {
+            $this->logger->debug("Found the following hosts for topic \"$topic\": " . implode(',', $hosts));
+        }
+            
         foreach ($hosts as $host) {
             $conn = $this->connectionPool->find($host);
             if ($conn === NULL) {
@@ -216,10 +220,6 @@ class nsqphpio
      */
     public function readAndDispatchMessage($socket, $callback)
     {
-        if ($this->logger) {
-            $this->logger->debug('Read and dispatch message from ' . $socket);
-        }
-        
         $connection = $this->connectionPool->find($socket);
         $frame = $this->reader->readFrame($connection);
 
@@ -235,25 +235,32 @@ class nsqphpio
             $connection->write($this->writer->nop());
         } elseif ($this->reader->frameIsMessage($frame)) {
             $msg = Message::fromFrame($frame);
-            try {
-                call_user_func($callback, $msg);
-            } catch (\Exception $e) {
+            
+            if ($this->dedupe !== NULL && $this->dedupe->containsAndAdd($msg)) {
                 if ($this->logger) {
-                    $this->logger->warn('Error processing "' . $msg->getId() . '": ' . $e->getMessage());
+                    $this->logger->debug(sprintf('Deduplicating [%s] "%s"', (string)$connection, $msg->getId()));
                 }
-                // requeue message according to backoff strategy; continue
-                if ($this->requeueStrategy !== NULL
-                        && ($delay = $this->requeueStrategy->shouldRequeue($msg)) !== NULL) {
-                    // requeue
+            } else {
+                try {
+                    call_user_func($callback, $msg);
+                } catch (\Exception $e) {
                     if ($this->logger) {
-                        $this->logger->debug('Requeuing "' . $msg->getId() . '" with delay "' . $delay . '"');
+                        $this->logger->warn(sprintf('Error processing [%s] "%s": %s', (string)$connection, $msg->getId(), $e->getMessage()));
                     }
-                    $connection->write($this->writer->requeue($msg->getId(), $delay));
-                    $connection->write($this->writer->ready(1));
-                    continue;
-                } else {
-                    if ($this->logger) {
-                        $this->logger->debug('Not requeing "' . $msg->getId() . '"');
+                    // requeue message according to backoff strategy; continue
+                    if ($this->requeueStrategy !== NULL
+                            && ($delay = $this->requeueStrategy->shouldRequeue($msg)) !== NULL) {
+                        // requeue
+                        if ($this->logger) {
+                            $this->logger->debug(sprintf('Requeuing [%s] "%s" with delay "%s"', (string)$connection, $msg->getId(), $delay));
+                        }
+                        $connection->write($this->writer->requeue($msg->getId(), $delay));
+                        $connection->write($this->writer->ready(1));
+                        continue;
+                    } else {
+                        if ($this->logger) {
+                            $this->logger->debug(sprintf('Not requeuing [%s] "%s"', (string)$connection, $msg->getId()));
+                        }
                     }
                 }
             }
