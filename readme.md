@@ -124,6 +124,8 @@ This time you should receive **only 10 messages**.
 
   - Requeue failed messages using a back-off strategy (currently only simple
     fixed-delay requeue strategy)
+  - Avoid failure that occurs on connection when publishing (preventing the
+    client library from doing what you'd want)
   - Continuously re-evaluate which nodes contain messages for a given topic
     (that is subscribed to) and establish new connections for those clients
     (via event loop timer)
