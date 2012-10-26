@@ -13,7 +13,7 @@ class ConnectionPool implements \Iterator, \Countable
     /**
      * Connections
      * 
-     * @var array [(string)$connection] = $connection
+     * @var array [] = ConnectionInterface $connection
      */
     private $connections = array();
 
@@ -24,12 +24,7 @@ class ConnectionPool implements \Iterator, \Countable
      */
     public function add(ConnectionInterface $connection)
     {
-        if (isset($this->connections[(string)$connection])) {
-            throw new \InvalidArgumentException(
-                    'We already have a connection to this server in the pool.'
-                    );
-        }
-        $this->connections[(string)$connection] = $connection;
+        $this->connections[] = $connection;
     }
     
     /**
@@ -44,25 +39,21 @@ class ConnectionPool implements \Iterator, \Countable
      */
     public function hasConnection(ConnectionInterface $connection)
     {
-        return isset($this->connections[(string)$connection]);
+        return $this->find($connection->getSocket()) ? TRUE : FALSE;
     }
     
     /**
      * Find connection from socket/host
      * 
-     * @param Resource|string $socketOrHost
+     * @param Resource $socket
      * 
      * @return ConnectionInterface|NULL Will return NULL if not found
      */
-    public function find($socketOrHost)
+    public function find($socket)
     {
-        if (is_string($socketOrHost)) {
-            return isset($this->connections[$socketOrHost]) ? $this->connections[$socketOrHost] : NULL;
-        } else {
-            foreach ($this->connections as $conn) {
-                if ($conn->getSocket() === $socketOrHost) {
-                    return $conn;
-                }
+        foreach ($this->connections as $conn) {
+            if ($conn->getSocket() === $socket) {
+                return $conn;
             }
         }
         return NULL;

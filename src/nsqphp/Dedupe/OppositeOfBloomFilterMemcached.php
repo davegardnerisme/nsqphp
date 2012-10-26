@@ -66,19 +66,23 @@ class OppositeOfBloomFilterMemcached implements DedupeInterface
      * Contains and add
      * 
      * Test if we have seen this message before, whilst also adding to our
-     * knowledge the fact we have seen it now.
+     * knowledge the fact we have seen it now. We deduplicate against message
+     * content, topic and channel (eg: all three have to be the same to consider
+     * as a duplicate).
      * 
+     * @param string $topic
+     * @param string $channel
      * @param MessageInterface $msg
      * 
      * @return boolean
      */
-    public function containsAndAdd(MessageInterface $msg)
+    public function containsAndAdd($topic, $channel, MessageInterface $msg)
     {
-        $element = $msg->getPayload();
+        $element = "$topic:$channel:" . $msg->getPayload();
         $hash = hash('adler32', $element, TRUE);
         list(, $val) = unpack('N', $hash);
         $index = $val % $this->size;
-        $content = hash('sha256', $element);
+        $content = md5($element);
         
         $mcKey = "nsqphp:{$this->size}:{$index}";
         $storedContentHash = $this->memcached->get($mcKey);

@@ -172,38 +172,42 @@ class nsqphpio
      *      backed-off requeue
      * 
      * @throws \InvalidArgumentException If we don't have a valid callback
-     * @throws Exception\NsLookupException If we cannot contact nslookupd to get hosts to connect to
-     * @throws Exception\ProtocolException If we receive unexpected response/error frame
      */
     public function subscribe($topic, $channel, $callback)
     {
+        if (!is_callable($callback)) {
+            throw new \InvalidArgumentException(
+                    '"callback" invalid; expecting a PHP callable'
+                    );
+        }
+        
+        // we need to instantiate a new connection for every nsqd that we need
+        // to fetch messages from for this topic/channel
+
         $hosts = $this->nsLookup->lookupHosts($topic);
         if ($this->logger) {
             $this->logger->debug("Found the following hosts for topic \"$topic\": " . implode(',', $hosts));
         }
-            
+
         foreach ($hosts as $host) {
-            $conn = $this->connectionPool->find($host);
-            if ($conn === NULL) {
-                $parts = explode(':', $host);
-                $conn = new Connection\Connection(
-                        $parts[0],
-                        isset($parts[1]) ? $parts[1] : NULL,
-                        $this->connectionTimeout,
-                        $this->readWriteTimeout,
-                        $this->readWaitTimeout,
-                        TRUE    // non-blocking
-                        );
-                if ($this->logger) {
-                    $this->logger->info("Connecting to {$host} and saying hello");
-                }
-                $conn->write($this->writer->magic());
-                $this->connectionPool->add($conn);
+            $parts = explode(':', $host);
+            $conn = new Connection\Connection(
+                    $parts[0],
+                    isset($parts[1]) ? $parts[1] : NULL,
+                    $this->connectionTimeout,
+                    $this->readWriteTimeout,
+                    $this->readWaitTimeout,
+                    TRUE    // non-blocking
+                    );
+            if ($this->logger) {
+                $this->logger->info("Connecting to {$host} and saying hello");
             }
+            $conn->write($this->writer->magic());
+            $this->connectionPool->add($conn);
             $socket = $conn->getSocket();
             $nsq = $this;
-            $this->loop->addReadStream($socket, function ($socket) use ($callback, $nsq) {
-                $nsq->readAndDispatchMessage($socket, $callback);
+            $this->loop->addReadStream($socket, function ($socket) use ($nsq, $callback, $topic, $channel) {
+                $nsq->readAndDispatchMessage($socket, $topic, $channel, $callback);
             });
             
             // subscribe
@@ -216,15 +220,17 @@ class nsqphpio
      * Read/dispatch callback for async sub loop
      * 
      * @param Resource $socket The socket that a message is available on
+     * @param string $topic The topic subscribed to that yielded this message
+     * @param string $channel The channel subscribed to that yielded this message
      * @param callable $callback The callback to execute to process this message
      */
-    public function readAndDispatchMessage($socket, $callback)
+    public function readAndDispatchMessage($socket, $topic, $channel, $callback)
     {
         $connection = $this->connectionPool->find($socket);
         $frame = $this->reader->readFrame($connection);
 
         if ($this->logger) {
-            $this->logger->debug(sprintf('Read frame [%s] %s', (string)$connection, json_encode($frame)));
+            $this->logger->debug(sprintf('Read frame for topic=%s channel=%s [%s] %s', $topic, $channel, (string)$connection, json_encode($frame)));
         }
 
         // intercept errors/responses
@@ -236,7 +242,7 @@ class nsqphpio
         } elseif ($this->reader->frameIsMessage($frame)) {
             $msg = Message::fromFrame($frame);
             
-            if ($this->dedupe !== NULL && $this->dedupe->containsAndAdd($msg)) {
+            if ($this->dedupe !== NULL && $this->dedupe->containsAndAdd($topic, $channel, $msg)) {
                 if ($this->logger) {
                     $this->logger->debug(sprintf('Deduplicating [%s] "%s"', (string)$connection, $msg->getId()));
                 }

@@ -27,7 +27,7 @@ while ($s = fgets(STDIN)) {
     }
     
     $processed++;
-    $seen = $obf->containsAndAdd(new nsqphp\Message\Message($s));
+    $seen = $obf->containsAndAdd('sometopic', 'somechannel', new nsqphp\Message\Message($s));
     if ($seen) {
         $dupes++;
     }

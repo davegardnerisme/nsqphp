@@ -13,7 +13,7 @@ include __DIR__ . '/../bootstrap.php';
 $hosts = isset($argv[2]) ? $argv[2] : 'localhost';
 
 $logger = new nsqphp\Logger\Stderr;
-$dedupe = new nsqphp\Dedupe\OppositeOfBloomFilter;
+$dedupe = new nsqphp\Dedupe\OppositeOfBloomFilterMemcached;
 $lookup = new nsqphp\Connection\Lookup($hosts);
 $requeueStrategy = new nsqphp\RequeueStrategy\FixedDelay;
 
