@@ -45,14 +45,16 @@ class ConnectionPool implements \Iterator, \Countable
     /**
      * Find connection from socket/host
      * 
-     * @param Resource $socket
+     * @param Resource|string $socketOrHost
      * 
      * @return ConnectionInterface|NULL Will return NULL if not found
      */
-    public function find($socket)
+    public function find($socketOrHost)
     {
         foreach ($this->connections as $conn) {
-            if ($conn->getSocket() === $socket) {
+            if (is_string($socketOrHost) && (string)$conn === $socketOrHost) {
+                return $conn;
+            } elseif ($conn->getSocket() === $socketOrHost) {
                 return $conn;
             }
         }
@@ -121,5 +123,13 @@ class ConnectionPool implements \Iterator, \Countable
     public function count()
     {
         return count($this->connections);
+    }
+    
+    /**
+     * Shuffle connections
+     */
+    public function shuffle()
+    {
+        shuffle($this->connections);
     }
 }

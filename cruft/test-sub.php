@@ -17,7 +17,7 @@ $dedupe = new nsqphp\Dedupe\OppositeOfBloomFilterMemcached;
 $lookup = new nsqphp\Connection\Lookup($hosts);
 $requeueStrategy = new nsqphp\RequeueStrategy\FixedDelay;
 
-$nsq = new nsqphp\nsqphpio($lookup, $dedupe, $requeueStrategy, $logger);
+$nsq = new nsqphp\nsqphp($lookup, $dedupe, $requeueStrategy, $logger);
 
 $channel = isset($argv[1]) ? $argv[1] : 'foo';
 

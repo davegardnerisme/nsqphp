@@ -111,16 +111,6 @@ instances and then de-duplicate on subscribe.
 This time you should receive **only 10 messages**.
 
 
-### The PHP client interface
-
-
-
-
-
-### Design log
-
-
-
 ### To do
 
   - Requeue failed messages using a back-off strategy (currently only simple
@@ -128,3 +118,49 @@ This time you should receive **only 10 messages**.
   - Continuously re-evaluate which nodes contain messages for a given topic
     (that is subscribed to) and establish new connections for those clients
     (via event loop timer)
+
+
+## The PHP client interface
+
+### Messages
+
+Messages are encapsulated by the nsqphp\Message\Message class and are referred
+to by interface within the code (so you could implement your own).
+
+
+
+
+### Publishing
+
+The client supports publishing to N `nsqd` clients, which must be specified
+explicitly by hostname. Unlike with subscription, there is no facility to 
+lookup the hostnames via `nslookupd` (and we probably wouldn't want to anyway
+for speed).
+
+Minimal approach:
+
+    $nsq = new nsqphp\nsqphp;
+    $nsq->publishTo('localhost')
+        ->publish('mytopic', new nsqphp\Message\Message('some message payload'));
+
+It's up to you to decide if/how to encode your payload (eg: JSON).
+
+HA publishing:
+
+    $nsq = new nsqphp\nsqphp;
+    $nsq->publishTo(array('nsq1', 'nsq2', 'nsq3'), nsqphp\nsqphp::PUB_QUORUM)
+        ->publish('mytopic', new nsqphp\Message\Message('some message payload'));
+
+We will require a quorum of the `publishTo` nsqd daemons to respond to consider
+this operation a success.
+
+
+
+### Subscribing
+
+
+## Design log
+
+  - main client based on event loop (powered by React PHP) to allow us to
+    handle multiple connections to multiple `nsqd` instances
+  - 
