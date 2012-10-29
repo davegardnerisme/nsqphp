@@ -7,6 +7,7 @@ use React\EventLoop\Factory as ELFactory;
 
 use nsqphp\Logger\LoggerInterface;
 use nsqphp\Connection\Lookup;
+use nsqphp\Connection\ConnectionInterface;
 use nsqphp\Dedupe\DedupeInterface;
 use nsqphp\RequeueStrategy\RequeueStrategyInterface;
 use nsqphp\Message\MessageInterface;
