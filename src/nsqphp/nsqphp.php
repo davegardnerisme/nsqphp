@@ -212,6 +212,7 @@ class nsqphp
             if (strpos($h, ':') === FALSE) {
                 $h .= ':4150';
             }
+            
             $parts = explode(':', $h);
             $conn = new Connection\Connection(
                     $parts[0],
@@ -219,12 +220,9 @@ class nsqphp
                     $this->connectionTimeout,
                     $this->readWriteTimeout,
                     $this->readWaitTimeout,
-                    FALSE   // blocking
+                    FALSE,      // blocking
+                    array($this, 'connectionCallback')
                     );
-            if ($this->logger) {
-                $this->logger->info("Connecting to {$h} and saying hello");
-            }
-            $conn->write($this->writer->magic());
             $this->pubConnectionPool->add($conn);
         }
         
@@ -284,7 +282,7 @@ class nsqphp
         
         if ($success < $this->pubSuccessCount) {
             throw new Exception\PublishException(
-                    sprintf('Failed to publish message; required %s for success, achieved %s. Error were: %s', $success, $this->pubSuccessCount, implode(',', $errors))
+                    sprintf('Failed to publish message; required %s for success, achieved %s. Error were: %s', $this->pubSuccessCount, $success, implode(', ', $errors))
                     );
         }
         
@@ -358,6 +356,14 @@ class nsqphp
     }
 
     /**
+     * Run subscribe event loop
+     */
+    public function run()
+    {
+        $this->loop->run();
+    }
+    
+    /**
      * Read/dispatch callback for async sub loop
      * 
      * @param Resource $socket The socket that a message is available on
@@ -423,10 +429,15 @@ class nsqphp
     }
     
     /**
-     * Run subscribe event loop
+     * Connection callback
+     * 
+     * @param ConnectionInterface $connection
      */
-    public function run()
+    public function connectionCallback(ConnectionInterface $connection)
     {
-        $this->loop->run();
+        if ($this->logger) {
+            $this->logger->info("Connecting to " . (string)$connection . " and saying hello");
+        }
+        $connection->write($this->writer->magic());
     }
 }
