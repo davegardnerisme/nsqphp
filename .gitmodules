@@ -3,4 +3,4 @@
 	url = git://gist.github.com/2966085.git
 [submodule "dependencies/react-php"]
 	path = dependencies/react-php
-	url = git://github.com/react-php/react.git
+	url = git://github.com/davegardnerisme/react.git
