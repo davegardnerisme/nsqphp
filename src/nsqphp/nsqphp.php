@@ -6,7 +6,7 @@ use React\EventLoop\LoopInterface;
 use React\EventLoop\Factory as ELFactory;
 
 use nsqphp\Logger\LoggerInterface;
-use nsqphp\Connection\Lookup;
+use nsqphp\Lookup\LookupInterface;
 use nsqphp\Connection\ConnectionInterface;
 use nsqphp\Dedupe\DedupeInterface;
 use nsqphp\RequeueStrategy\RequeueStrategyInterface;
@@ -25,7 +25,7 @@ class nsqphp
     /**
      * nsqlookupd service
      * 
-     * @var Lookup|NULL
+     * @var LookupInterface|NULL
      */
     private $nsLookup;
     
@@ -130,7 +130,7 @@ class nsqphp
     /**
      * Constructor
      * 
-     * @param Lookup|NULL $nsLookup Lookup service for hosts from topic (optional)
+     * @param LookupInterface|NULL $nsLookup Lookup service for hosts from topic (optional)
      *      NB: $nsLookup service _is_ required for subscription
      * @param DedupeInterface|NULL $dedupe Deduplication service (optional)
      * @param RequeueStrategyInterface|NULL $requeueStrategy Our strategy
@@ -139,7 +139,7 @@ class nsqphp
        @param LoggerInterface|NULL $logger Logging service (optional)
      */
     public function __construct(
-            Lookup $nsLookup = NULL,
+            LookupInterface $nsLookup = NULL,
             DedupeInterface $dedupe = NULL,
             RequeueStrategyInterface $requeueStrategy = NULL,
             LoggerInterface $logger = NULL,

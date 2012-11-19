@@ -1,6 +1,6 @@
 <?php
 
-namespace nsqphp\Connection;
+namespace nsqphp\Lookup;
 
 use nsqphp\Exception\LookupException;
 
@@ -8,7 +8,7 @@ use nsqphp\Exception\LookupException;
  * Represents nsqlookupd and allows us to find machines we need to talk to
  * for a given topic
  */
-class Lookup
+class Nsqlookupd implements LookupInterface
 {
     /**
      * Hosts to connect to, incl. :port
@@ -61,7 +61,7 @@ class Lookup
      * @throws LookupException If we cannot talk to / get back invalid response
      *      from nsqlookupd
      * 
-     * @return array
+     * @return array Should return array [] = host:port
      */
     public function lookupHosts($topic)
     {
