@@ -24,6 +24,11 @@ use nsqphp\Message\MessageInterface;
 class OppositeOfBloomFilter implements DedupeInterface
 {
     /**
+     * Deleted placeholder
+     */
+    const DELETED = 'D';
+    
+    /**
      * Hash map
      * 
      * @var array
@@ -37,13 +42,6 @@ class OppositeOfBloomFilter implements DedupeInterface
      */
     private $size;
     
-    /**
-     * Collisions
-     * 
-     * @var integer
-     */
-    private $collisions = array();
-
     /**
      *
      * @param integer $size
@@ -69,29 +67,46 @@ class OppositeOfBloomFilter implements DedupeInterface
      */
     public function containsAndAdd($topic, $channel, MessageInterface $msg)
     {
+        $hashed = $this->hash($topic, $channel, $msg);
+        $this->map[$hashed['index']] = $hashed['content'];
+        return $hashed['seen'];
+    }
+    
+    /**
+     * Remove knowledge of msg
+     * 
+     * Test if we have seen this message before and if we have (eg: if we still
+     * have knowledge of the message) then "remove" it (so that we won't think
+     * we have seen it).
+     * 
+     * @param string $topic
+     * @param string $channel
+     * @param MessageInterface $msg
+     */
+    public function erase($topic, $channel, MessageInterface $msg)
+    {
+        if ($hashed['seen']) {
+            $this->map[$hashed['index']] = self::DELETED;
+        }
+    }
+    
+    /**
+     * Get bucket / content hash
+     * 
+     * @param string $topic
+     * @param string $channel
+     * @param MessageInterface $msg
+     * 
+     * @return array index, content, seen (boolean)
+     */
+    private function hash($topic, $channel, MessageInterface $msg)
+    {
         $element = "$topic:$channel:" . $msg->getPayload();
         $hash = hash('adler32', $element, TRUE);
         list(, $val) = unpack('N', $hash);
         $index = $val % $this->size;
         $content = md5($element);
         $seen = isset($this->map[$index]) && $this->map[$index] === $content;
-        if (!isset($this->collisions[$index])) {
-            $this->collisions[$index] = 0;
-        } else {
-            $this->collisions[$index]++;
-        }
-        $this->map[$index] = $content;
-        return $seen;
-    }
-    
-    /**
-     * Get hash collisions
-     * 
-     * @return array
-     */
-    public function getHashCollisions()
-    {
-        ksort($this->collisions);
-        return $this->collisions;
+        return array('index' => $index, 'content' => $content, 'seen' => $seen);
     }
 }

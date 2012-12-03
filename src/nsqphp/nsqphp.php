@@ -398,6 +398,11 @@ class nsqphp
                 try {
                     call_user_func($callback, $msg);
                 } catch (\Exception $e) {
+                    // erase knowledge of this msg from dedupe
+                    if ($this->dedupe !== NULL) {
+                        $this->dedupe->erase($topic, $channel, $msg);
+                    }
+                    
                     if ($this->logger) {
                         $this->logger->warn(sprintf('Error processing [%s] "%s": %s', (string)$connection, $msg->getId(), $e->getMessage()));
                     }
@@ -410,7 +415,6 @@ class nsqphp
                         }
                         $connection->write($this->writer->requeue($msg->getId(), $delay));
                         $connection->write($this->writer->ready(1));
-                        continue;
                     } else {
                         if ($this->logger) {
                             $this->logger->debug(sprintf('Not requeuing [%s] "%s"', (string)$connection, $msg->getId()));
