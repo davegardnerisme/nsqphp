@@ -415,6 +415,7 @@ class nsqphp
                         }
                         $connection->write($this->writer->requeue($msg->getId(), $delay));
                         $connection->write($this->writer->ready(1));
+                        return;
                     } else {
                         if ($this->logger) {
                             $this->logger->debug(sprintf('Not requeuing [%s] "%s"', (string)$connection, $msg->getId()));
