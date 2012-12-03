@@ -101,6 +101,7 @@ class OppositeOfBloomFilterMemcached implements DedupeInterface
      */
     public function erase($topic, $channel, MessageInterface $msg)
     {
+        $hashed = $this->hash($topic, $channel, $msg);
         if ($hashed['seen']) {
             $this->memcached->set($hashed['mcKey'], self::DELETED);
         }

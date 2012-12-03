@@ -429,7 +429,7 @@ class nsqphp
 
         } else {
             // @todo handle error responses a bit more cleverly
-            throw new Exception\ProtocolException("Error/unexpected frame received: " . json_encode($frame), NULL, $e);
+            throw new Exception\ProtocolException("Error/unexpected frame received: " . json_encode($frame));
         }
     }
     
