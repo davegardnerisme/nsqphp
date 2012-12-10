@@ -89,11 +89,13 @@ class Nsqlookupd implements LookupInterface
             $r = curl_exec($ch);
             $r = json_decode($r, TRUE);
             
+            // don't fail since we can't distinguish between bad topic and general failure
+            /*
             if (!is_array($r)) {
                 throw new LookupException(
                         "Error talking to nsqlookupd via $url"
                         );
-            }
+            }*/
             
             $producers = isset($r['data'], $r['data']['producers']) ? $r['data']['producers'] : array();
             foreach ($producers as $prod) {
