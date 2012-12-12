@@ -1,6 +1,6 @@
 [submodule "dependencies/spl-class-loader"]
 	path = dependencies/spl-class-loader
-	url = git://gist.github.com/2966085.git
+	url = git@github.com:hailocab/php-spl-class-loader.git
 [submodule "dependencies/react-php"]
 	path = dependencies/react-php
 	url = git://github.com/davegardnerisme/react.git
