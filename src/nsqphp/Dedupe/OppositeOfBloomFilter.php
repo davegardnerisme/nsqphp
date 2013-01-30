@@ -6,8 +6,8 @@ use nsqphp\Message\MessageInterface;
 
 /**
  * Lossy hash map that is able to tell us whether we have seen a message
- * before, with a change of a false negative (eg: saying we haven't, when we
- * have), but no change of a false positive (eg: saying we have when we
+ * before, with a chance of a false negative (eg: saying we haven't, when we
+ * have), but no chance of a false positive (eg: saying we have when we
  * haven't).
  * 
  * Stores the hash map internally as a PHP array; hence bound within a
@@ -18,6 +18,8 @@ use nsqphp\Message\MessageInterface;
  * functions collided (eg: the one to pick index and the one to hash content)
  * then we would return a false positive. I'm assuming this is vanishingly
  * small. This should probably be investigated some more.
+ * 
+ * May contain cruft.
  * 
  * http://somethingsimilar.com/2012/05/21/the-opposite-of-a-bloom-filter/
  */
