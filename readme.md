@@ -17,9 +17,8 @@ Here's some thing I have learned:
     and then connect to every `nsqd` it tells you to (this is one of the things
     that makes nsq good).
   - HA (for pub) is easy due to the fact that each `nsqd` instance is isolated;
-    you can simply connect to _any_ and send publish your message (so far I
-    haven't got a publish interface that achieves this for you, you would
-    have to write code to do it like the `test-pub.php` example.
+    you can simply connect to _any_ and send publish your message (I have built
+    this into the client).
   - Resilience is provided by simply writing to more than one `nsqd` and then
     de-duplicating on subscribe (I have built this into the client).
   - nsq is not designed as a _work queue_ (for long running tasks) out of the
