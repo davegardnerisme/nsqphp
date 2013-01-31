@@ -17,9 +17,8 @@ Here's some thing I have learned:
     and then connect to every `nsqd` it tells you to (this is one of the things
     that makes nsq good).
   - HA (for pub) is easy due to the fact that each `nsqd` instance is isolated;
-    you can simply connect to _any_ and send publish your message (so far I
-    haven't got a publish interface that achieves this for you, you would
-    have to write code to do it like the `test-pub.php` example.
+    you can simply connect to _any_ and send publish your message (I have built
+    this into the client).
   - Resilience is provided by simply writing to more than one `nsqd` and then
     de-duplicating on subscribe (I have built this into the client).
   - nsq is not designed as a _work queue_ (for long running tasks) out of the
@@ -255,10 +254,10 @@ supply an object that implements `nsqphp\Dedupe\DedupeInterface`.
     public function containsAndAdd($topic, $channel, MessageInterface $msg);
 
 The PHP client ships with two mechanisms for de-duplicating messages on subscribe.
-Both are based around **the opposite of a bloom filter**. One maintains
-a hash map as a PHP array (and hence bound to a single process); the other
-calls out to Memcached and hence can share the data structure between
-many processes.
+Both are based around [the opposite of a bloom filter](http://www.davegardner.me.uk/blog/2012/11/06/stream-de-duplication/).
+One maintains a hash map as a PHP array (and hence bound to a single
+process); the other calls out to Memcached and hence can share the data
+structure between many processes.
 
 We can use this thus:
 
@@ -277,8 +276,8 @@ We can use this thus:
         echo $msg->getId() . "\n";
     }
 
-I will write up some more detailed notes on de-duplication, however it's
-worth keeping the following in mind:
+You can [read more about de-duplication on my blog](http://www.davegardner.me.uk/blog/2012/11/06/stream-de-duplication/),
+however it's worth keeping the following in mind:
 
   - With Memcached de-duplication we can then happily launch N processes to
     subscribe to the same topic and channel, and only process the messages once.
