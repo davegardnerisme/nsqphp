@@ -364,6 +364,15 @@ class nsqphp
         $this->loop->run();
     }
     
+    
+    /**
+     * Stop subscribe event loop
+     */
+    public function stop()
+    {
+        $this->loop->stop();
+    }
+    
     /**
      * Read/dispatch callback for async sub loop
      * 
