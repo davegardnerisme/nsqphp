@@ -363,8 +363,7 @@ class nsqphp
     {
         $this->loop->run();
     }
-    
-    
+
     /**
      * Stop subscribe event loop
      */
