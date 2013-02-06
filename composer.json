@@ -5,7 +5,7 @@
     "keywords": [
         "nsq"
     ],
-    "homepage": "https://github.com/davegardnerisme/nsqphp"
+    "homepage": "https://github.com/davegardnerisme/nsqphp",
     "require": {
         "php": ">=5.3.0"
     },
