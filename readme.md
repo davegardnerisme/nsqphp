@@ -32,14 +32,26 @@ Here's some thing I have learned:
 
 ### Installation
 
-I haven't packaged yet (eg: using composer). Easiest way is simply to clone:
+`nsqphp` is available to add to your project via composer. Simply add the
+following to your composer.json.
+
+    {
+        "repositories": [
+            { "type": "vcs", "url": "git@github.com:davegardnerisme/nsqphp.git" },
+        ],
+        "require": {
+            "davegardnerisme/nsqphp": "*@dev"
+        }
+    }
+
+You can also simply clone it into your project:
 
     git clone git://github.com/davegardnerisme/nsqphp.git
     cd nsqphp
     git submodule update --init --recursive
 
 To use `nsqphp` in your projects, just include the `bootstrap.php` file, or
-setup autoloading. The design lends itself to a dependency injection
+setup autoloading via composer. The design lends itself to a dependency injection
 container (all dependencies are constructor injected), although you can just
 setup the dependencies manually when you use it.
 
