@@ -272,6 +272,8 @@ class nsqphp
                 $frame = $this->reader->readFrame($conn);
                 if ($this->reader->frameIsResponse($frame, 'OK')) {
                     $success++;
+                } else {
+                    $errors[] = $frame['error'];
                 }
             } catch (\Exception $e) {
                 $errors[] = $e->getMessage();
@@ -283,7 +285,7 @@ class nsqphp
         
         if ($success < $this->pubSuccessCount) {
             throw new Exception\PublishException(
-                    sprintf('Failed to publish message; required %s for success, achieved %s. Error were: %s', $this->pubSuccessCount, $success, implode(', ', $errors))
+                    sprintf('Failed to publish message; required %s for success, achieved %s. Errors were: %s', $this->pubSuccessCount, $success, implode(', ', $errors))
                     );
         }
         
