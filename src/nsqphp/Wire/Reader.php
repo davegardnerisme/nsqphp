@@ -23,6 +23,11 @@ class Reader
      * Heartbeat response content
      */
     const HEARTBEAT = '_heartbeat_';
+    
+    /**
+     * OK response content
+     */
+    const OK = 'OK';
 
     /**
      * Read frame
@@ -112,6 +117,18 @@ class Reader
     public function frameIsHeartbeat(array $frame)
     {
         return $this->frameIsResponse($frame, self::HEARTBEAT);
+    }
+
+    /**
+     * Test if frame is OK
+     * 
+     * @param array $frame
+     * 
+     * @return boolean
+     */
+    public function frameIsOk(array $frame)
+    {
+        return $this->frameIsResponse($frame, self::OK);
     }
     
     /**

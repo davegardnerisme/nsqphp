@@ -438,6 +438,10 @@ class nsqphp
             $connection->write($this->writer->finish($msg->getId()));
             $connection->write($this->writer->ready(1));
 
+        } elseif ($this->reader->frameIsOk($frame)) {
+            if ($this->logger) {
+                $this->logger->debug(sprintf('Ignoring "OK" frame in SUB loop'));
+            }
         } else {
             // @todo handle error responses a bit more cleverly
             throw new Exception\ProtocolException("Error/unexpected frame received: " . json_encode($frame));
