@@ -151,7 +151,7 @@ class Connection implements ConnectionInterface
                 $buffer = stream_socket_recvfrom($socket, $len);
                 if ($buffer === FALSE) {
                     throw new SocketException("Could not read {$len} bytes from {$this->hostname}:{$this->port}");
-                } else if ($buffer == '' && feof($socket)) {
+                } else if ($buffer == '') {
                     throw new SocketException("Read 0 bytes from {$this->hostname}:{$this->port}");
                 }
             } else if ($readable === 0) {
