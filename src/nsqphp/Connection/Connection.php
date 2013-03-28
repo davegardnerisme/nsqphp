@@ -155,7 +155,7 @@ class Connection implements ConnectionInterface
                     throw new SocketException("Read 0 bytes from {$this->hostname}:{$this->port}");
                 }
             } else if ($readable === 0) {
-                throw new SocketException("Timed out reading {$len} bytes from {$this->hostname}:{$this->port}");
+                throw new SocketException("Timed out reading {$len} bytes from {$this->hostname}:{$this->port} after {$this->readWriteTimeoutSec} seconds and {$this->readWriteTimeoutUsec} microseconds");
             } else {
                 throw new SocketException("Could not read {$len} bytes from {$this->hostname}:{$this->port}");
             }
@@ -188,7 +188,7 @@ class Connection implements ConnectionInterface
                 // determine how much of the buffer is left to write
                 $buf = substr($buf, $written);
             } else if ($writable === 0) {
-                throw new SocketException("Timed out writing " . strlen($buf) . " bytes to {$this->hostname}:{$this->port}");
+                throw new SocketException("Timed out writing " . strlen($buf) . " bytes to {$this->hostname}:{$this->port} after {$this->readWriteTimeoutSec} seconds and {$this->readWriteTimeoutUsec} microseconds");
             } else {
                 throw new SocketException("Could not write " . strlen($buf) . " bytes to {$this->hostname}:{$this->port}");
             }
