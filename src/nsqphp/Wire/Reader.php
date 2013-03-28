@@ -45,7 +45,7 @@ class Reader
             $size = $this->readInt($connection);
             $frameType = $this->readInt($connection);
         } catch (SocketException $e) {
-            throw new ReadException("Error reading message frame [$size, $frameType]", NULL, $e);
+            throw new ReadException("Error reading message frame [$size, $frameType] (" . $e->getMessage() . ")", NULL, $e);
         }
 
         $frame = array(
