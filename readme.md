@@ -36,12 +36,12 @@ Here's some thing I have learned:
 following to your composer.json.
 
     {
-        "repositories": [
-            { "type": "vcs", "url": "git@github.com:davegardnerisme/nsqphp.git" },
-        ],
+        ...
         "require": {
-            "davegardnerisme/nsqphp": "*@dev"
+            ...
+            "davegardnerisme/nsqphp": "dev-master"
         }
+        ...
     }
 
 You can also simply clone it into your project:
