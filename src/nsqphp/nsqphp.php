@@ -246,6 +246,8 @@ class nsqphp
         if ($this->pubSuccessCount > $this->pubConnectionPool->count()) {
             throw new \InvalidArgumentException(sprintf('Cannot achieve desired consistency level with %s nodes', $this->pubConnectionPool->count()));
         }
+
+        return $this;
     }
     
     /**
