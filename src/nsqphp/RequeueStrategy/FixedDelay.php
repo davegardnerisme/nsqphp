@@ -57,7 +57,7 @@ class FixedDelay implements RequeueStrategyInterface
     public function shouldRequeue(MessageInterface $msg)
     {
         $attempts = $msg->getAttempts();
-        return $attempts + 1 < $this->maxAttempts
+        return $attempts < $this->maxAttempts
                 ? $this->delay
                 : NULL;
     }
