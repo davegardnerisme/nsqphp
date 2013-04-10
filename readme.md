@@ -2,6 +2,13 @@
 
 PHP client for [NSQ](https://github.com/bitly/nsq).
 
+Key contributors:
+
+ - https://github.com/davegardnerisme
+ - https://github.com/NoiseByNorthwest
+
+[Click here for full list](https://github.com/davegardnerisme/nsqphp/contributors).
+
 ### NSQ basics
 
 You can read all about NSQ via the [readme on Github](https://github.com/bitly/nsq),
