@@ -212,7 +212,7 @@ class Connection implements ConnectionInterface
         }
         return $data;
     }
-    
+
     /**
      * Get socket handle
      * 
@@ -223,6 +223,7 @@ class Connection implements ConnectionInterface
         if ($this->socket === NULL) {
             $this->socket = fsockopen($this->hostname, $this->port, $errNo, $errStr, $this->connectionTimeout);
             if ($this->socket === FALSE) {
+                $this->socket = NULL;
                 throw new ConnectionException(
                         "Could not connect to {$this->hostname}:{$this->port} ({$errStr} [{$errNo}])"
                         );
@@ -237,6 +238,20 @@ class Connection implements ConnectionInterface
             }
         }
         return $this->socket;
+    }
+    
+    /**
+     * Disconnect
+     * 
+     * This will force read/write operations to reconnect. Allows us to
+     * reset connections when unexpected protocol failures occur.
+     */
+    public function disconnect()
+    {
+        if (is_resource($this->socket)) {
+            fclose($this->socket);
+        }
+        $this->socket = NULL;
     }
     
     /**

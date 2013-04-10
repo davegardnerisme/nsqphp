@@ -35,4 +35,12 @@ interface ConnectionInterface
      * @return Resource The socket
      */
     public function getSocket();
+    
+    /**
+     * Disconnect
+     * 
+     * This will force read/write operations to reconnect. Allows us to
+     * reset connections when unexpected protocol failures occur.
+     */
+    public function disconnect();
 }

@@ -263,29 +263,46 @@ class nsqphp
      */
     public function publish($topic, MessageInterface $msg)
     {
-        // pick a random
-        $this->pubConnectionPool->shuffle();
-        
-        $success = 0;
+        $success = array(); // keep track of which PUB hosts we've had success with
         $errors = array();
-        foreach ($this->pubConnectionPool as $conn) {
-            try {
-                $conn->write($this->writer->publish($topic, $msg->getPayload()));
-                $frame = $this->reader->readFrame($conn);
-                if ($this->reader->frameIsResponse($frame, 'OK')) {
-                    $success++;
-                } else {
-                    $errors[] = $frame['error'];
+
+        // hardcode 2 attempts at each configured server (incase of random timeouts etc.)
+        for ($i=0; $i<2; $i++) {
+            $this->pubConnectionPool->shuffle();
+
+            foreach ($this->pubConnectionPool as $conn) {
+                
+                // don't try the same host twice
+                if (in_array((string)$conn, $success, TRUE)) {
+                    continue;
                 }
-            } catch (\Exception $e) {
-                $errors[] = $e->getMessage();
+
+                try {
+                    $conn->write($this->writer->publish($topic, $msg->getPayload()));
+                    $frame = $this->reader->readFrame($conn);
+                    if ($this->reader->frameIsHeartbeat($frame)) {
+                        // got a HB, try again
+                        $frame = $this->reader->readFrame($conn);
+                    }
+                    if ($this->reader->frameIsResponse($frame, 'OK')) {
+                        $success[] = (string)$conn;
+                    } else {
+                        $conn->disconnect();
+                        $errors[] = 'Unexpected frame: ' . json_encode($frame);
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = $e->getMessage();
+                }
+                if (count($success) >= $this->pubSuccessCount) {
+                    break;
+                }
             }
-            if ($success >= $this->pubSuccessCount) {
+            if (count($success) >= $this->pubSuccessCount) {
                 break;
             }
         }
-        
-        if ($success < $this->pubSuccessCount) {
+
+        if (count($success) < $this->pubSuccessCount) {
             throw new Exception\PublishException(
                     sprintf('Failed to publish message; required %s for success, achieved %s. Errors were: %s', $this->pubSuccessCount, $success, implode(', ', $errors))
                     );
