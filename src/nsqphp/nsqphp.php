@@ -246,6 +246,8 @@ class nsqphp
         if ($this->pubSuccessCount > $this->pubConnectionPool->count()) {
             throw new \InvalidArgumentException(sprintf('Cannot achieve desired consistency level with %s nodes', $this->pubConnectionPool->count()));
         }
+
+        return $this;
     }
     
     /**
@@ -360,9 +362,17 @@ class nsqphp
 
     /**
      * Run subscribe event loop
+     *
+     * @param int $timeout (default=0) timeout in seconds
      */
-    public function run()
+    public function run($timeout = 0)
     {
+        if ($timeout > 0) {
+            $that = $this;
+            $this->loop->addTimer($timeout, function () use ($that) {
+                $that->stop();
+            });
+        }
         $this->loop->run();
     }
 
