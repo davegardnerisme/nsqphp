@@ -101,7 +101,7 @@ class Connection implements ConnectionInterface
      */
     public function __construct(
             $hostname = 'localhost',
-            $port = 4150,
+            $port = NULL,
             $connectionTimeout = 3,
             $readWriteTimeout = 3,
             $readWaitTimeout = 15,
@@ -109,7 +109,7 @@ class Connection implements ConnectionInterface
             $connectCallback = NULL
             ) {
         $this->hostname = $hostname;
-        $this->port = $port;
+        $this->port = $port ? $port : 4150;
         $this->connectionTimeout = $connectionTimeout;
         $this->readWriteTimeoutSec = floor($readWriteTimeout);
         $this->readWriteTimeoutUsec = ($readWriteTimeout - $this->readWriteTimeoutSec) * 1000000;
