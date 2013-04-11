@@ -52,7 +52,7 @@ class Reader
             'type'  => $frameType,
             'size'  => $size
             );
-        
+
         try {
             switch ($frameType) {
                 case self::FRAME_TYPE_RESPONSE:
@@ -68,11 +68,14 @@ class Reader
                     $frame['payload'] = $this->readString($connection, $size - 30);
                     break;
                 default:
-                    throw new UnknownFrameException($this->readString($connection, $size-4));
+                    // try to grab some of the content as a string, but bound it
+                    // so we don't just try to read _huge amounts_ of stuff
+                    $amount = $size <= 1024 ? $size - 4 : 1024;
+                    throw new UnknownFrameException($this->readString($connection, $amount));
                     break;
             }
         } catch (SocketException $e) {
-            throw new ReadException("Error reading frame details [$size, $frameType]", NULL, $e);
+            throw new ReadException("Error reading frame details [$size, $frameType] " . $e->getMessage(), NULL, $e);
         }
 
         return $frame;
