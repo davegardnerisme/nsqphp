@@ -210,7 +210,6 @@ class Connection implements ConnectionInterface
             $this->socket = NULL;
             throw $e;
         }
-        return $data;
     }
 
     /**
