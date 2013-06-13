@@ -170,6 +170,16 @@ class nsqphp
         $this->shortId = $parts[0];
         $this->longId = $hn;
     }
+
+    /**
+     * Set requeue strategy
+     *
+     * @param \nsqphp\RequeueStrategy\RequeueStrategyInterface $requeueStrategy
+     */
+    public function setRequeueStrategy(RequeueStrategyInterface $requeueStrategy = NULL)
+    {
+        $this->requeueStrategy = $requeueStrategy;
+    }
     
     /**
      * Destructor
