@@ -415,6 +415,13 @@ class nsqphp
                     $this->logger->debug(sprintf('Deduplicating [%s] "%s"', (string)$connection, $msg->getId()));
                 }
             } else {
+                if ($msg->mustBeDelayed()) {
+                    if ($this->logger) {
+                        $this->logger->debug(sprintf('Delaying [%s] "%s" for %ss', (string)$connection, $msg->getId()));
+                    }
+                    $this->requeue($connection, $msg, $msg->getDelay() * 1000);
+                    return;
+                }
                 try {
                     call_user_func($callback, $msg);
                 } catch (\Exception $e) {
@@ -429,12 +436,7 @@ class nsqphp
                     // requeue message according to backoff strategy; continue
                     if ($this->requeueStrategy !== NULL
                             && ($delay = $this->requeueStrategy->shouldRequeue($msg)) !== NULL) {
-                        // requeue
-                        if ($this->logger) {
-                            $this->logger->debug(sprintf('Requeuing [%s] "%s" with delay "%s"', (string)$connection, $msg->getId(), $delay));
-                        }
-                        $connection->write($this->writer->requeue($msg->getId(), $delay));
-                        $connection->write($this->writer->ready(1));
+                        $this->requeue($connection, $msg, $delay);
                         return;
                     } else {
                         if ($this->logger) {
@@ -456,6 +458,28 @@ class nsqphp
             // @todo handle error responses a bit more cleverly
             throw new Exception\ProtocolException("Error/unexpected frame received: " . json_encode($frame));
         }
+    }
+
+    /**
+     * Requeue a message with delay
+     *
+     * @param \nsqphp\Connection\ConnectionInterface $connection
+     * @param \nsqphp\Message\Message $msg
+     * @param int $delay = 0
+     */
+    private function requeue(ConnectionInterface $connection, Message $msg, $delay = 0)
+    {
+        $delay = (int) $delay;
+        if ($this->logger) {
+            $this->logger->debug(sprintf(
+                'Requeuing [%s] "%s" with delay "%s"',
+                (string)$connection,
+                $msg->getId(),
+                $delay
+            ));
+        }
+        $connection->write($this->writer->requeue($msg->getId(), $delay));
+        $connection->write($this->writer->ready(1));
     }
     
     /**
