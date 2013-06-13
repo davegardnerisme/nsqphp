@@ -417,7 +417,7 @@ class nsqphp
             } else {
                 if ($msg->mustBeDelayed()) {
                     if ($this->logger) {
-                        $this->logger->debug(sprintf('Delaying [%s] "%s" for %ss', (string)$connection, $msg->getId()));
+                        $this->logger->debug(sprintf('Delaying [%s] "%s" for %ss', (string)$connection, $msg->getId(), $msg->getDelay()));
                     }
                     $this->requeue($connection, $msg, $msg->getDelay() * 1000);
                     return;
