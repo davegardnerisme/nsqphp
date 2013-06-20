@@ -426,6 +426,10 @@ class nsqphp
                 }
             } else {
                 try {
+                    $writer = $this->writer;
+                    $msg->setTouchFunction(function () use($connection, $writer, $msg) {
+                        $connection->write($writer->touch($msg->getId()));
+                    });
                     call_user_func($callback, $msg);
                 } catch (\Exception $e) {
                     // erase knowledge of this msg from dedupe
