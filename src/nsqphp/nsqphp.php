@@ -172,6 +172,16 @@ class nsqphp
     }
 
     /**
+     * Set the nsq lookup service
+     *
+     * @param \nsqphp\Lookup\LookupInterface $nsLookup
+     */
+    public function setNsLookup(LookupInterface $nsLookup = NULL)
+    {
+        $this->nsLookup = $nsLookup;
+    }
+
+    /**
      * Set requeue strategy
      *
      * @param \nsqphp\RequeueStrategy\RequeueStrategyInterface $requeueStrategy
