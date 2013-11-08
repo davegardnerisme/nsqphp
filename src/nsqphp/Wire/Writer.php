@@ -44,10 +44,16 @@ class Writer
      */
     public function publish($topic, $message)
     {
+        // the fast pack way, but may be unsafe
         $cmd = $this->command('PUB', $topic);
-        $data = $this->packString($message);
-        $size = pack('N', strlen($data));
-        return $cmd . $size . $data;
+        $size = pack('N', strlen($message));
+        return $cmd . $size . $message;
+        
+        // the safe way, but is time cost
+        // $cmd = $this->command('PUB', $topic);
+        // $data = $this->packString($message);
+        // $size = pack('N', strlen($data));
+        // return $cmd . $size . $data;
     }
     
     /**
