@@ -165,7 +165,7 @@ class nsqphp
         $this->reader = new Wire\Reader;
         $this->writer = new Wire\Writer;
 
-        $hn = exec('hostname -f');
+        $hn = gethostname();
         $parts = explode('.', $hn);
         $this->shortId = $parts[0];
         $this->longId = $hn;
