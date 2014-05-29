@@ -96,14 +96,14 @@ class Nsqlookupd implements LookupInterface
                         "Error talking to nsqlookupd via $url"
                         );
             }*/
-            
+
             $producers = isset($r['data'], $r['data']['producers']) ? $r['data']['producers'] : array();
             foreach ($producers as $prod) {
-                $h = "{$prod['address']}:{$prod['tcp_port']}";
+                $h = "{$prod['hostname']}:{$prod['tcp_port']}";
                 if (!in_array($h, $lookupHosts)) {
                     $lookupHosts[] = $h;
                 }
-                
+
             }
         }
 
