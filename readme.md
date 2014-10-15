@@ -286,7 +286,7 @@ We can use this thus:
 ```php
     $requeueStrategy = new nsqphp\RequeueStrategy\FixedDelay;
     $dedupe = new nsqphp\Dedupe\OppositeOfBloomFilterMemcached;
-    $lookup = new nsqphp\Lookup\Nsqlookup;
+    $lookup = new nsqphp\Lookup\Nsqlookupd;
     $nsq = new nsqphp\nsqphp($lookup, $dedupe, $requeueStrategy);
     $nsq->subscribe('mytopic', 'somechannel', 'msgCallback')
         ->run();
