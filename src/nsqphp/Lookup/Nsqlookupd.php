@@ -99,7 +99,12 @@ class Nsqlookupd implements LookupInterface
             
             $producers = isset($r['data'], $r['data']['producers']) ? $r['data']['producers'] : array();
             foreach ($producers as $prod) {
-                $h = "{$prod['address']}:{$prod['tcp_port']}";
+		if(isset($prod['address'])) {
+		    $address = $prod['address'];
+		} else {
+		    $address = $prod['broadcast_address'];
+		}
+                $h = "{$address}:{$prod['tcp_port']}";
                 if (!in_array($h, $lookupHosts)) {
                     $lookupHosts[] = $h;
                 }
