@@ -163,17 +163,20 @@ for speed).
 
 Minimal approach:
 
+```php
     $nsq = new nsqphp\nsqphp;
     $nsq->publishTo('localhost')
         ->publish('mytopic', new nsqphp\Message\Message('some message payload'));
-
+```
 It's up to you to decide if/how to encode your payload (eg: JSON).
 
 HA publishing:
 
+```php
     $nsq = new nsqphp\nsqphp;
     $nsq->publishTo(array('nsq1', 'nsq2', 'nsq3'), nsqphp\nsqphp::PUB_QUORUM)
         ->publish('mytopic', new nsqphp\Message\Message('some message payload'));
+```
 
 We will require a quorum of the `publishTo` nsqd daemons to respond to consider
 this operation a success (currently that happens in series). This is assuming
@@ -192,27 +195,27 @@ to know where to find messages.
 
 So when subscribing, the first thing we need to do is initialise our
 lookup service object:
-
-    $lookup = new nsqphp\Connection\Lookup;
-
+```php
+    $lookup = new nsqphp\Lookup\Nsqlookupd;
+```
 Or alternatively:
-
-    $lookup = new nsqphp\Connection\Lookup('nsq1,nsq2');
-
+```php
+    $lookup = new nsqphp\Lookup\Nsqlookupd('nsq1,nsq2');
+```
 We can then use this to subscribe:
-
-    $lookup = new nsqphp\Connection\Lookup;
+```php
+    $lookup = new nsqphp\Lookup\Nsqlookupd;
     $nsq = new nsqphp\nsqphp($lookup);
     $nsq->subscribe('mytopic', 'somechannel', function($msg) {
         echo $msg->getId() . "\n";
         })->run();
-
+```
 **Warning: if our callback were to throw any Exceptions, the messages would
 not be retried using these settings - read on to find out more.**
 
 Or a bit more in the style of PHP (?):
-
-    $lookup = new nsqphp\Connection\Lookup;
+```php
+    $lookup = new nsqphp\Lookup\Nsqlookupd;
     $nsq = new nsqphp\nsqphp($lookup);
     $nsq->subscribe('mytopic', 'somechannel', 'msgCallback')
         ->run();
@@ -221,14 +224,17 @@ Or a bit more in the style of PHP (?):
     {
         echo $msg->getId() . "\n";
     }
+```
 
 We can also subscribe to more than one channel/stream:
 
-    $lookup = new nsqphp\Connection\Lookup;
+```php
+    $lookup = new nsqphp\Lookup\Nsqlookup;
     $nsq = new nsqphp\nsqphp($lookup);
     $nsq->subscribe('mytopic', 'somechannel', 'msgCallback')
         ->subscribe('othertopic', 'somechannel', 'msgCallback')
         ->run();
+```
 
 ### Retrying failed messages
 
@@ -239,12 +245,15 @@ won't want to discard the messages.
 To fix this, we need a **requeue strategy** - this is in the form of any
 object that implements `nsqphp\RequeueStrategy\RequeueStrategyInterface`:
 
+```php
     public function shouldRequeue(MessageInterface $msg);
+```
 
 The client currently ships with one; a fixed delay strategy:
 
+```php
     $requeueStrategy = new nsqphp\RequeueStrategy\FixedDelay;
-    $lookup = new nsqphp\Connection\Lookup;
+    $lookup = new nsqphp\Lookup\Nsqlookupd;
     $nsq = new nsqphp\nsqphp($lookup, NULL, $requeueStrategy);
     $nsq->subscribe('mytopic', 'somechannel', 'msgCallback')
         ->run();
@@ -256,6 +265,7 @@ The client currently ships with one; a fixed delay strategy:
         }
         echo $msg->getId() . "\n";
     }
+```
 
 ### De-duplication on subscribe
 
@@ -273,9 +283,10 @@ structure between many processes.
 
 We can use this thus:
 
+```php
     $requeueStrategy = new nsqphp\RequeueStrategy\FixedDelay;
     $dedupe = new nsqphp\Dedupe\OppositeOfBloomFilterMemcached;
-    $lookup = new nsqphp\Connection\Lookup;
+    $lookup = new nsqphp\Lookup\Nsqlookupd;
     $nsq = new nsqphp\nsqphp($lookup, $dedupe, $requeueStrategy);
     $nsq->subscribe('mytopic', 'somechannel', 'msgCallback')
         ->run();
@@ -287,6 +298,7 @@ We can use this thus:
         }
         echo $msg->getId() . "\n";
     }
+```
 
 You can [read more about de-duplication on my blog](http://www.davegardner.me.uk/blog/2012/11/06/stream-de-duplication/),
 however it's worth keeping the following in mind:
@@ -310,18 +322,21 @@ The final optional dependency is a logger, in the form of some object that
 implements `nsqphp\Logger\LoggerInterface` (there is no standard logger
 interface shipped with PHP to the best of my knowledge):
 
+```php
     public function error($msg);
     public function warn($msg);
     public function info($msg);
     public function debug($msg);
+```
 
 The PHP client ships with a logger that dumps all logging information to STDERR.
 Putting all of this together we'd have something similar to the `test-sub.php`
 file:
 
+```php
     $requeueStrategy = new nsqphp\RequeueStrategy\FixedDelay;
     $dedupe = new nsqphp\Dedupe\OppositeOfBloomFilterMemcached;
-    $lookup = new nsqphp\Connection\Lookup;
+    $lookup = new nsqphp\Lookup\Nsqlookupd;
     $logger = new nsqphp\Logger\Stderr;
     $nsq = new nsqphp\nsqphp($lookup, $dedupe, $requeueStrategy, logger);
     $nsq->subscribe('mytopic', 'somechannel', 'msgCallback')
@@ -334,7 +349,7 @@ file:
         }
         echo $msg->getId() . "\n";
     }
-
+```
 
 ## Design log
 
