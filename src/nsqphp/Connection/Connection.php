@@ -148,7 +148,7 @@ class Connection implements ConnectionInterface
         while (strlen($data) < $len) {
             $readable = stream_select($read, $null, $null, $this->readWriteTimeoutSec, $this->readWriteTimeoutUsec);
             if ($readable > 0) {
-                $buffer = stream_socket_recvfrom($socket, $len);
+                $buffer = @stream_socket_recvfrom($socket, $len);
                 if ($buffer === FALSE) {
                     throw new SocketException("Could not read {$len} bytes from {$this->hostname}:{$this->port}");
                 } else if ($buffer == '') {
@@ -163,6 +163,18 @@ class Connection implements ConnectionInterface
             $len -= strlen($buffer);
         }
         return $data;
+    }
+
+    /**
+     * Reconnect and return the socket
+     *
+     * @return Resource the socket
+     */
+    public function reconnect()
+    {
+        @fclose($this->socket);
+        $this->socket = NULL;
+        return $this->getSocket();
     }
 
     /**
@@ -181,7 +193,7 @@ class Connection implements ConnectionInterface
             $writable = stream_select($null, $write, $null, $this->readWriteTimeoutSec, $this->readWriteTimeoutUsec);
             if ($writable > 0) {
                 // write buffer to stream
-                $written = stream_socket_sendto($socket, $buf);
+                $written = @stream_socket_sendto($socket, $buf);
                 if ($written === -1 || $written === FALSE) {
                     throw new SocketException("Could not write " . strlen($buf) . " bytes to {$this->hostname}:{$this->port}");
                 }
