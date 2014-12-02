@@ -2,6 +2,7 @@
 
 namespace nsqphp;
 
+use nsqphp\Exception\SocketException;
 use React\EventLoop\LoopInterface;
 use React\EventLoop\Factory as ELFactory;
 
@@ -282,6 +283,18 @@ class nsqphp
             try {
                 $conn->write($this->writer->publish($topic, $msg->getPayload()));
                 $frame = $this->reader->readFrame($conn);
+                while ($this->reader->frameIsHeartbeat($frame)) {
+                    try {
+                        $conn->write($this->writer->nop());
+                        $frame = $this->reader->readFrame($conn);
+                    } catch (SocketException $e) {
+                        // If we were unable to reply to a heartbeat, we likely were disconnected before
+                        // we actually read it
+                        $conn->reconnect();
+                        $conn->write($this->writer->publish($topic, $msg->getPayload()));
+                        $frame = $this->reader->readFrame($conn);
+                    }
+                }
                 if ($this->reader->frameIsResponse($frame, 'OK')) {
                     $success++;
                 } else {

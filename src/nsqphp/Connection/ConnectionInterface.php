@@ -35,4 +35,11 @@ interface ConnectionInterface
      * @return Resource The socket
      */
     public function getSocket();
+
+    /**
+     * Reconnect and replace the socket resource.
+     *
+     * @return Resource The socket, after reconnecting
+     */
+    public function reconnect();
 }
