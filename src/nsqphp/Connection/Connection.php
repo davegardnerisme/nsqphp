@@ -165,8 +165,14 @@ class Connection implements ConnectionInterface
         return $data;
     }
 
+    /**
+     * Reconnect and return the socket
+     *
+     * @return Resource the socket
+     */
     public function reconnect()
     {
+        @fclose($this->socket);
         $this->socket = NULL;
         return $this->getSocket();
     }
