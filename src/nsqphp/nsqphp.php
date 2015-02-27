@@ -280,26 +280,21 @@ class nsqphp
         $success = 0;
         $errors = array();
         foreach ($this->pubConnectionPool as $conn) {
+            /** @var $conn ConnectionInterface */
             try {
-                $conn->write($this->writer->publish($topic, $msg->getPayload()));
-                $frame = $this->reader->readFrame($conn);
-                while ($this->reader->frameIsHeartbeat($frame)) {
-                    try {
+                $this->tryFunc(function (ConnectionInterface $conn) use ($topic, $msg, &$success, &$errors) {
+                    $conn->write($this->writer->publish($topic, $msg->getPayload()));
+                    $frame = $this->reader->readFrame($conn);
+                    while ($this->reader->frameIsHeartbeat($frame)) {
                         $conn->write($this->writer->nop());
                         $frame = $this->reader->readFrame($conn);
-                    } catch (SocketException $e) {
-                        // If we were unable to reply to a heartbeat, we likely were disconnected before
-                        // we actually read it
-                        $conn->reconnect();
-                        $conn->write($this->writer->publish($topic, $msg->getPayload()));
-                        $frame = $this->reader->readFrame($conn);
                     }
-                }
-                if ($this->reader->frameIsResponse($frame, 'OK')) {
-                    $success++;
-                } else {
-                    $errors[] = $frame['error'];
-                }
+                    if ($this->reader->frameIsResponse($frame, 'OK')) {
+                        $success++;
+                    } else {
+                        $errors[] = $frame['error'];
+                    }
+                }, $conn, 2);
             } catch (\Exception $e) {
                 $errors[] = $e->getMessage();
             }
@@ -315,7 +310,24 @@ class nsqphp
         }
         
         return $this;
-    }    
+    }
+
+    public function tryFunc(Callable $func, ConnectionInterface $conn, $tries = 1)
+    {
+        $lastException = NULL;
+        for ($try = 0; $try <= $tries; $try++) {
+            try {
+                $func($conn);
+                return;
+            } catch (\Exception $e) {
+                $lastException = $e;
+                $conn->reconnect();
+            }
+        }
+        if ($lastException) {
+            throw $lastException;
+        }
+    }
     
     /**
      * Subscribe to topic/channel
