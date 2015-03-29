@@ -40,8 +40,8 @@ class Reader
      */
     public function readFrame(ConnectionInterface $connection)
     {
+        $size = $frameType = NULL;
         try {
-            $size = $frameType = NULL;
             $size = $this->readInt($connection);
             $frameType = $this->readInt($connection);
         } catch (SocketException $e) {
