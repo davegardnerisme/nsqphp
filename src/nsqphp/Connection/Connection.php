@@ -215,7 +215,7 @@ class Connection implements ConnectionInterface
     public function getSocket()
     {
         if ($this->socket === NULL) {
-            $this->socket = fsockopen($this->hostname, $this->port, $errNo, $errStr, $this->connectionTimeout);
+            $this->socket = @fsockopen($this->hostname, $this->port, $errNo, $errStr, $this->connectionTimeout);
             if ($this->socket === FALSE) {
                 throw new ConnectionException(
                         "Could not connect to {$this->hostname}:{$this->port} ({$errStr} [{$errNo}])"
