@@ -11,21 +11,30 @@ class Message implements MessageInterface
      */
     public static function fromFrame(array $frame)
     {
-        return new Message(
-                $frame['payload'],
-                $frame['id'],
-                $frame['attempts'],
-                $frame['ts']
-                );
+        $message = new static;
+        foreach (array('id', 'attempts', 'ts') as $k) {
+            $message->$k = $frame[$k];
+        }
+        foreach (json_decode($frame['payload'], true) as $k => $v) {
+            $message->$k = $v;
+        }
+        return $message;
     }
     
     /**
-     * Message payload - string
+     * Message user data - string
      * 
      * @var string
      */
     private $data = '';
-    
+
+    /**
+     * Message schedule timestamp
+     *
+     * @var int
+     */
+    private $scheduledAt = NULL;
+
     /**
      * Message ID; if relevant
      * 
@@ -51,16 +60,77 @@ class Message implements MessageInterface
      * Constructor
      * 
      * @param string $data
-     * @param string|NULL $id The message ID in hex (as ASCII)
-     * @param integer|NULL $attempts How many attempts have been made on msg so far
-     * @param float|NULL $ts Timestamp (nanosecond precision, as number of seconds)
+     * @param int $delay Delay in second
      */
-    public function __construct($data, $id = NULL, $attempts = NULL, $ts = NULL)
+    public function __construct($data = '', $delay = 0)
     {
         $this->data = $data;
-        $this->id = $id;
-        $this->attempts = $attempts;
-        $this->ts = $ts;
+        if ($delay) {
+            $this->scheduledAt = time() + $delay;
+        }
+    }
+
+    /**
+     * Get message user data
+     *
+     * @return string
+     */
+    public function getData()
+    {
+        return $this->data;
+    }
+
+    /**
+     * Get message schedule timestamp (if delayed, otherwise null)
+     *
+     * @return int|null
+     */
+    public function getScheduledAt()
+    {
+        return $this->scheduledAt;
+    }
+
+    /**
+     * Get message delay in second
+     *
+     * @return int
+     */
+    public function getDelay()
+    {
+        return max(0, $this->scheduledAt - time());
+    }
+
+    /**
+     * Whether the message is delayed
+     *
+     * @return boolean
+     */
+    public function isDelayed()
+    {
+        return (bool) $this->scheduledAt;
+    }
+
+    /**
+     * Whether the message must be delayed instead of being processed
+     *
+     * @return boolean
+     */
+    public function mustBeDelayed()
+    {
+        return $this->isDelayed() && $this->attempts == 1;
+    }
+
+    /**
+     * Get ready timestamp
+     *
+     * @return int
+     */
+    public function getReadyAt()
+    {
+        if ($this->isDelayed()) {
+            return $this->getScheduledAt();
+        }
+        return (int) $this->getTimestamp();
     }
     
     /**
@@ -70,7 +140,10 @@ class Message implements MessageInterface
      */
     public function getPayload()
     {
-        return $this->data;
+        return json_encode(array(
+            'data' => $this->data,
+            'scheduledAt' => $this->scheduledAt,
+        ));
     }
 
     /**
@@ -90,6 +163,12 @@ class Message implements MessageInterface
      */
     public function getAttempts()
     {
+        if (!$this->attempts) {
+            return null;
+        }
+        if ($this->isDelayed()) {
+            return max(1, $this->attempts - 1);
+        }
         return $this->attempts;
     }
     
