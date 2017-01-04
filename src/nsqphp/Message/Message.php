@@ -46,6 +46,14 @@ class Message implements MessageInterface
      * @var float|NULL
      */
     private $ts = NULL;
+
+    /**
+     * Function wich allow to tell nsqd client to touch the message
+     * (and thus reset its timeout)
+     *
+     * @var callable
+     */
+    private $touchFunction;
     
     /**
      * Constructor
@@ -101,5 +109,27 @@ class Message implements MessageInterface
     public function getTimestamp()
     {
         return $this->ts;
+    }
+
+    /**
+     * Set message-touching function
+     *
+     * @param callable $func
+     */
+    public function setTouchFunction($func)
+    {
+        $this->touchFunction = $func;
+    }
+
+    /**
+     * Tell nsqd client to touch the message
+     *
+     */
+    public function touch()
+    {
+        if ($this->touchFunction) {
+            $func = $this->touchFunction;
+            $func();
+        }
     }
 }

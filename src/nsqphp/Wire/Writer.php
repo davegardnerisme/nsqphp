@@ -104,6 +104,18 @@ class Writer
     }
     
     /**
+     * Touch [TOUCH]
+     *
+     * @param string $id
+     *
+     * @return string
+     */
+    public function touch($id)
+    {
+        return $this->command('TOUCH', $id);
+    }
+
+    /**
      * Cleanly close [CLS]
      *
      * @return string
