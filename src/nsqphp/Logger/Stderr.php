@@ -55,6 +55,8 @@ class Stderr implements LoggerInterface
         $msg =  $msg instanceof \Exception ? $msg->getMessage() : (string)$msg;
         if ($level == 'error') {
             fwrite(STDERR, sprintf('[%s] %s: %s%s', date('Y-m-d H:i:s'), strtoupper($level), $msg, PHP_EOL));
+        } else {
+            fwrite(STDOUT, sprintf('[%s] %s: %s%s', date('Y-m-d H:i:s'), strtoupper($level), $msg, PHP_EOL));
         }
     }
 }
