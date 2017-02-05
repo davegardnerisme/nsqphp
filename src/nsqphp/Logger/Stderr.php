@@ -53,6 +53,8 @@ class Stderr implements LoggerInterface
     private function log($level, $msg)
     {
         $msg =  $msg instanceof \Exception ? $msg->getMessage() : (string)$msg;
-        fwrite(STDERR, sprintf('[%s] %s: %s%s', date('Y-m-d H:i:s'), strtoupper($level), $msg, PHP_EOL));
+        if ($level == 'error') {
+            fwrite(STDERR, sprintf('[%s] %s: %s%s', date('Y-m-d H:i:s'), strtoupper($level), $msg, PHP_EOL));
+        }
     }
 }
