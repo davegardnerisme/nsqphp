@@ -98,6 +98,9 @@ class Nsqlookupd implements LookupInterface
             }*/
             
             $producers = isset($r['data'], $r['data']['producers']) ? $r['data']['producers'] : array();
+            if (count($producers) < 1) {
+                $producers = isset($r['producers']) ? $r['producers'] : array();
+            }
             foreach ($producers as $prod) {
                 if (isset($prod['address'])) {
                     $address = $prod['address'];
