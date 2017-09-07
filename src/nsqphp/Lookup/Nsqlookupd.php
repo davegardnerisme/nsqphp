@@ -97,7 +97,13 @@ class Nsqlookupd implements LookupInterface
                         );
             }*/
             
-            $producers = isset($r['data'], $r['data']['producers']) ? $r['data']['producers'] : array();
+            /* mac nsqd v1.0.0-compat (built w/go1.8)
+            {"channels":["nsq_to_file","car"],"producers":[{"remote_address":"127.0.0.1:62973","hostname":"yxpdeMacBook-Pro.local","broadcast_address":"yxpdeMacBook-Pro.local","tcp_port":4150,"http_port":4151,"version":"1.0.0-compat"}]}
+            so del $r['data']
+            /*
+            //$producers = isset($r['data'], $r['data']['producers']) ? $r['data']['producers'] : array();
+            $producers = isset($r['producers']) ? $['producers'] : array();
+            
             foreach ($producers as $prod) {
                 if (isset($prod['address'])) {
                     $address = $prod['address'];
