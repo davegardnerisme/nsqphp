@@ -2,6 +2,10 @@
 
 PHP client for [NSQ](https://github.com/bitly/nsq).
 
+### Notice
+
+I cannot maintain this anymore - apologies for ignored PRs. If someone wants to take over I am happy to transfer ownership. Send me a message via @davegardnerisme.
+
 ### NSQ basics
 
 You can read all about NSQ via the [readme on Github](https://github.com/bitly/nsq),
