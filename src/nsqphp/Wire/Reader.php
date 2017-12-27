@@ -192,9 +192,7 @@ class Reader
         $temp = unpack("c{$size}chars", $connection->read($size));
         $out = ""; 
         foreach($temp as $v) {
-            if ($v > 0) {
-                $out .= chr($v);
-            }
+            $out .= chr($v);
         }
         return $out; 
     }
