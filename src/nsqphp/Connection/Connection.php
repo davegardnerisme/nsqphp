@@ -136,31 +136,32 @@ class Connection implements ConnectionInterface
     /**
      * Read from the socket exactly $len bytes
      *
-     * @param integer $len How many bytes to read
+     * @param integer $desiredLen How many bytes to read
      * 
      * @return string Binary data
     */
-    public function read($len)
+    public function read($desiredLen)
     {
         $null = NULL;
         $read = array($socket = $this->getSocket());
+        $surplusLen = $desiredLen;
         $buffer = $data = '';
-        while (strlen($data) < $len) {
+        while (strlen($data) < $desiredLen) {
             $readable = stream_select($read, $null, $null, $this->readWriteTimeoutSec, $this->readWriteTimeoutUsec);
             if ($readable > 0) {
-                $buffer = @stream_socket_recvfrom($socket, $len);
+                $buffer = @stream_socket_recvfrom($socket, $surplusLen);
                 if ($buffer === FALSE) {
-                    throw new SocketException("Could not read {$len} bytes from {$this->hostname}:{$this->port}");
+                    throw new SocketException("Could not read {$surplusLen} bytes from {$this->hostname}:{$this->port}");
                 } else if ($buffer == '') {
                     throw new SocketException("Read 0 bytes from {$this->hostname}:{$this->port}");
                 }
             } else if ($readable === 0) {
-                throw new SocketException("Timed out reading {$len} bytes from {$this->hostname}:{$this->port} after {$this->readWriteTimeoutSec} seconds and {$this->readWriteTimeoutUsec} microseconds");
+                throw new SocketException("Timed out reading {$surplusLen} bytes from {$this->hostname}:{$this->port} after {$this->readWriteTimeoutSec} seconds and {$this->readWriteTimeoutUsec} microseconds");
             } else {
-                throw new SocketException("Could not read {$len} bytes from {$this->hostname}:{$this->port}");
+                throw new SocketException("Could not read {$surplusLen} bytes from {$this->hostname}:{$this->port}");
             }
             $data .= $buffer;
-            $len -= strlen($buffer);
+            $surplusLen -= strlen($buffer);
         }
         return $data;
     }
