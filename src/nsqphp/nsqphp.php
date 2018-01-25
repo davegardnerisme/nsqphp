@@ -220,21 +220,26 @@ class nsqphp
         if (!is_array($hosts)) {
             $hosts = explode(',', $hosts);
         }
+        $cm = Connection\ConnectionManager::getInstance();
         foreach ($hosts as $h) {
             if (strpos($h, ':') === FALSE) {
                 $h .= ':4150';
             }
             
             $parts = explode(':', $h);
-            $conn = new Connection\Connection(
-                    $parts[0],
-                    isset($parts[1]) ? $parts[1] : NULL,
-                    $this->connectionTimeout,
-                    $this->readWriteTimeout,
-                    $this->readWaitTimeout,
-                    FALSE,      // blocking
-                    array($this, 'connectionCallback')
-                    );
+            $conn = $cm->find($h);
+            if (!$conn) {
+                $conn = new Connection\Connection(
+                        $parts[0],
+                        isset($parts[1]) ? $parts[1] : NULL,
+                        $this->connectionTimeout,
+                        $this->readWriteTimeout,
+                        $this->readWaitTimeout,
+                        FALSE,      // blocking
+                        array($this, 'connectionCallback')
+                        );
+                $cm->add($conn);
+            }
             $this->pubConnectionPool->add($conn);
         }
         
