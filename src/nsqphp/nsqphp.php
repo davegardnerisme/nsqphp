@@ -452,6 +452,16 @@ class nsqphp
             } else {
                 try {
                     call_user_func($callback, $msg);
+                } catch (Exception\ExpiredMessageException $e) {
+                    // expired message
+                    if ($this->logger) {
+                        $this->logger->info(sprintf(
+                            'Expired message [%s] "%s": %s',
+                            (string)$connection,
+                            $msg->getId(),
+                            $e->getMessage()
+                        ));
+                    }
                 } catch (\Exception $e) {
                     // erase knowledge of this msg from dedupe
                     if ($this->dedupe !== NULL) {
@@ -461,20 +471,29 @@ class nsqphp
                     if ($this->logger) {
                         $this->logger->warn(sprintf('Error processing [%s] "%s": %s', (string)$connection, $msg->getId(), $e->getMessage()));
                     }
+
+                    $requeue = false;
+                    // explicit requeuing
+                    if ($e instanceof Exception\RequeueMessageException) {
+                        $requeue = true;
+                        $requeueDelay = $e->getDelay();
+                    }
                     // requeue message according to backoff strategy; continue
-                    if ($this->requeueStrategy !== NULL
-                            && ($delay = $this->requeueStrategy->shouldRequeue($msg)) !== NULL) {
+                    else if ($this->requeueStrategy !== NULL
+                            && ($requeueDelay = $this->requeueStrategy->shouldRequeue($msg)) !== NULL) {
+                        $requeue = true;
+                    }
+                    if ($requeue) {
                         // requeue
                         if ($this->logger) {
-                            $this->logger->debug(sprintf('Requeuing [%s] "%s" with delay "%s"', (string)$connection, $msg->getId(), $delay));
+                            $this->logger->debug(sprintf('Requeuing [%s] "%s" with delay "%s"', (string)$connection, $msg->getId(), $requeueDelay));
                         }
-                        $connection->write($this->writer->requeue($msg->getId(), $delay));
+                        $connection->write($this->writer->requeue($msg->getId(), $requeueDelay));
                         $connection->write($this->writer->ready(1));
                         return;
-                    } else {
-                        if ($this->logger) {
-                            $this->logger->debug(sprintf('Not requeuing [%s] "%s"', (string)$connection, $msg->getId()));
-                        }
+                    }
+                    if ($this->logger) {
+                        $this->logger->debug(sprintf('Not requeuing [%s] "%s"', (string)$connection, $msg->getId()));
                     }
                 }
             }
