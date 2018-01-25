@@ -161,7 +161,7 @@ Interface:
 ### Publishing
 
 The client supports publishing to N `nsqd` servers, which must be specified
-explicitly by hostname. Unlike with subscription, there is no facility to 
+explicitly by hostname. Unlike with subscription, there is no facility to
 lookup the hostnames via `nslookupd` (and we probably wouldn't want to anyway
 for speed).
 
@@ -274,8 +274,8 @@ The client currently ships with one; a fixed delay strategy:
 ### De-duplication on subscribe
 
 Recall that to achieve HA we simply duplicate on publish into
-two different `nsqd` servers. To perform de-duplication we simply need to 
-supply an object that implements `nsqphp\Dedupe\DedupeInterface`. 
+two different `nsqd` servers. To perform de-duplication we simply need to
+supply an object that implements `nsqphp\Dedupe\DedupeInterface`.
 
     public function containsAndAdd($topic, $channel, MessageInterface $msg);
 
@@ -342,7 +342,7 @@ file:
     $dedupe = new nsqphp\Dedupe\OppositeOfBloomFilterMemcached;
     $lookup = new nsqphp\Lookup\Nsqlookupd;
     $logger = new nsqphp\Logger\Stderr;
-    $nsq = new nsqphp\nsqphp($lookup, $dedupe, $requeueStrategy, logger);
+    $nsq = new nsqphp\nsqphp($lookup, $dedupe, $requeueStrategy, $logger);
     $nsq->subscribe('mytopic', 'somechannel', 'msgCallback')
         ->run();
 
@@ -359,4 +359,3 @@ file:
 
   - main client based on event loop (powered by React PHP) to allow us to
     handle multiple connections to multiple `nsqd` instances
-
